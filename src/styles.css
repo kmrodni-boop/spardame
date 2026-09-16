@@ -1,0 +1,225 @@
+@import "tailwindcss";
+
+@theme {
+  --color-felt: #12382c;
+  --color-felt-deep: #0a241c;
+  --color-felt-mid: #184536;
+  --color-cream: #f3ead8;
+  --color-cream-dim: #d9ccb4;
+  --color-ink: #14110e;
+  --color-ink-soft: #3a332c;
+  --color-muted: #8d9d94;
+  --color-line: #2d5a4a;
+  --color-heart: #b4232c;
+  --color-card: #fffdf8;
+  --color-card-edge: #d8ccb6;
+  --font-sans: "Outfit", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-back: cubic-bezier(0.22, 1.4, 0.36, 1);
+  --motion-quick: 150ms;
+  --motion-fast: 250ms;
+  --motion-play: 480ms;
+  --motion-collect: 640ms;
+}
+
+@layer base {
+  html,
+  body,
+  #app {
+    min-height: 100dvh;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-felt-deep);
+    color: var(--color-cream);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+.felt-grain {
+  background-image:
+    radial-gradient(ellipse at 50% 30%, color-mix(in oklab, var(--color-felt-mid) 55%, transparent), transparent 58%),
+    repeating-radial-gradient(circle at 18% 22%, transparent 0 1px, rgb(0 0 0 / 0.04) 1.5px 2px);
+}
+
+.playing-card {
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    opacity var(--motion-quick) var(--ease-out);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.trick-fly {
+  transform-origin: center center;
+  animation-duration: var(--motion-play);
+  animation-timing-function: var(--ease-back);
+  animation-fill-mode: both;
+}
+
+.trick-fly.trick-from-0 {
+  animation-name: trick-fly-south;
+}
+
+.trick-fly.trick-from-1 {
+  animation-name: trick-fly-west;
+}
+
+.trick-fly.trick-from-2 {
+  animation-name: trick-fly-north;
+}
+
+.trick-fly.trick-from-3 {
+  animation-name: trick-fly-east;
+}
+
+@keyframes trick-fly-south {
+  from {
+    opacity: 0.15;
+    transform: translateY(8.5rem) scale(1.18) rotate(-10deg);
+  }
+  58% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes trick-fly-west {
+  from {
+    opacity: 0.15;
+    transform: translateX(-8.5rem) scale(1.12) rotate(12deg);
+  }
+  58% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes trick-fly-north {
+  from {
+    opacity: 0.15;
+    transform: translateY(-8.5rem) scale(1.12) rotate(-8deg);
+  }
+  58% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes trick-fly-east {
+  from {
+    opacity: 0.15;
+    transform: translateX(8.5rem) scale(1.12) rotate(-12deg);
+  }
+  58% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1) rotate(0deg);
+  }
+}
+
+.trick-collect {
+  transition:
+    transform var(--motion-collect) var(--ease-out),
+    opacity 480ms ease-in;
+  transform: translate(0, 0) scale(1);
+  opacity: 1;
+}
+
+.trick-collect.collecting.trick-to-0 {
+  transform: translateY(12rem) scale(0.48);
+  opacity: 0;
+}
+
+.trick-collect.collecting.trick-to-1 {
+  transform: translateX(-12rem) scale(0.48);
+  opacity: 0;
+}
+
+.trick-collect.collecting.trick-to-2 {
+  transform: translateY(-12rem) scale(0.48);
+  opacity: 0;
+}
+
+.trick-collect.collecting.trick-to-3 {
+  transform: translateX(12rem) scale(0.48);
+  opacity: 0;
+}
+
+.hand-enter {
+  animation: hand-enter 420ms var(--ease-out) both;
+}
+
+@keyframes hand-enter {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem) rotate(7deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.card-received {
+  animation: card-received 560ms var(--ease-out);
+}
+
+@keyframes card-received {
+  0% {
+    transform: translateY(-14px) rotate(-5deg);
+  }
+  55% {
+    transform: translateY(-8px) rotate(2deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playing-card {
+    transition: none;
+  }
+
+  .trick-fly,
+  .hand-enter,
+  .card-received {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .trick-collect {
+    transition: none;
+  }
+
+  .trick-collect.collecting {
+    opacity: 0;
+  }
+}
