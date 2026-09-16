@@ -1,56 +1,58 @@
 # Spardame
 
-Kortspill for nettleseren: **Spardame** (norske regler) og **Hjerter** (Windows Hearts). Fire spillere, tre motstandere, offisielle regler.
+Kortspill som **vanlig Linux-program** — eget vindu, ikon i app-menyen, ikke en nettleser-fane.
 
-English is the default language. Switch to Norwegian in the menu.
+Spardame (norske regler) og Hearts (Windows). Fire spillere, tre motstandere.
 
-## På Pop!_OS / VS Code
+## Installer på Pop!_OS
 
-Du trenger **Node.js 22** (npm følger med).
+Last ned fra [Releases](https://github.com/kmrodni-boop/spardame/releases/latest).
+
+**Anbefalt (.deb):**
 
 ```bash
-# hvis du ikke har Node 22 ennå (nvm):
-# curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
-# nvm install 22
+sudo dpkg -i spardame_1.0.0_amd64.deb
+```
 
+Søk opp **Spardame** i app-menyen og start den som et hvilket som helst annet program.
+
+**Uten sudo (AppImage):**
+
+```bash
+chmod +x Spardame-1.0.0.AppImage
+./Spardame-1.0.0.AppImage
+```
+
+Avinstaller .deb med `sudo apt remove spardame`.
+
+## Bygg fra kildekode
+
+Trenger **Node.js 22**.
+
+```bash
 git clone https://github.com/kmrodni-boop/spardame.git
 cd spardame
 npm install
-npm run dev
+npm run dist
+npm run install:linux
 ```
 
-Åpne [http://localhost:8080](http://localhost:8080) i nettleseren.
+`npm run dist` lager filene i `release/`. `npm run install:linux` legger AppImage i `~/.local/bin/spardame` og en snarvei i app-menyen.
 
-I VS Code: **Clone Repository** → lim inn `https://github.com/kmrodni-boop/spardame.git` → åpne mappen → `Terminal` → `npm install` → `npm run dev`.
-
-Spillet lagrer språk, navn og parti i nettleseren (`localStorage`). Ingen konto, ingen database.
-
-## Kommandoer
-
-| Kommando | Hva den gjør |
-| --- | --- |
-| `npm run dev` | Utviklingsserver på port 8080 |
-| `npm run build` | Produksjonsbygg |
-| `npm run typecheck` | TypeScript-sjekk |
-| `npm run test:game` | Regler og motor (19 tester) |
-
-Port **8080** må være ledig. Stopp med `Ctrl+C`.
+Utvikling i eget vindu: `npm run desktop:dev`
 
 ## Spill
 
 - **Spardame:** spar dame 100, hjerter ess 20, øvrige hjerter 10, ruter knekt −100. Til 500.
-- **Hearts:** hjerter 1, queen of spades 13. Shoot the moon gir 26 til de andre. Til 100.
-- Første stikk: kløver 2. Følg farge. Hjerter kan ikke spilles ut før de er brutt.
+- **Hearts:** hearts 1, queen of spades 13. Shoot the moon gir 26 til de andre. Til 100.
+- Engelsk er standard. Bytt til norsk i menyen. Språk og parti lagres på maskinen.
 
 ## English
 
-Browser card game: Norwegian Spardame and Windows Hearts. Four players, three AI opponents.
+A native Linux desktop app (window + icon), not a browser tab.
+
+Download the `.deb` or AppImage from [Releases](https://github.com/kmrodni-boop/spardame/releases/latest), then:
 
 ```bash
-git clone https://github.com/kmrodni-boop/spardame.git
-cd spardame
-npm install
-npm run dev
+sudo dpkg -i spardame_1.0.0_amd64.deb
 ```
-
-Then open [http://localhost:8080](http://localhost:8080). Node.js 22 required.
