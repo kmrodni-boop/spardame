@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@source "./**/*.{ts,tsx}";
+@source "../electron/**/*.{ts,tsx,html}";
 
 @theme {
   --color-felt: #12382c;

@@ -47,7 +47,7 @@ function createWindow() {
   if (startUrl) {
     void win.loadURL(startUrl);
   } else {
-    void win.loadFile(path.join(here, "..", "dist-desktop", "index.html"));
+    void win.loadFile(path.join(here, "..", "dist-desktop", "electron", "index.html"));
   }
 }
 

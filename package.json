@@ -1,7 +1,7 @@
 {
   "name": "spardame",
   "productName": "Spardame",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Spardame and Hearts card game for Linux",
   "author": {
     "name": "Kai Marius Alm",
@@ -30,7 +30,7 @@
     "test:game": "node --experimental-strip-types --test src/game/engine.test.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "desktop:dev": "concurrently -k \"vite --config vite.desktop.config.ts\" \"wait-on http://127.0.0.1:5173 && ELECTRON_START_URL=http://127.0.0.1:5173 electron .\"",
+    "desktop:dev": "concurrently -k \"vite --config vite.desktop.config.ts\" \"wait-on http://127.0.0.1:5173/electron/index.html && ELECTRON_START_URL=http://127.0.0.1:5173/electron/index.html electron .\"",
     "desktop:build": "vite build --config vite.desktop.config.ts",
     "dist": "npm run desktop:build && electron-builder --linux AppImage deb",
     "install:linux": "sh scripts/install-linux.sh"

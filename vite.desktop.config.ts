@@ -7,9 +7,18 @@ const rootDir = import.meta.dirname;
 
 export default defineConfig({
   base: "./",
-  root: path.join(rootDir, "electron"),
+  root: rootDir,
   publicDir: path.join(rootDir, "public"),
-  plugins: [tailwindcss(), viteReact()],
+  plugins: [
+    tailwindcss(),
+    viteReact(),
+    {
+      name: "strip-crossorigin",
+      transformIndexHtml(html: string) {
+        return html.replaceAll(" crossorigin", "");
+      },
+    },
+  ],
   resolve: {
     alias: { "@": path.join(rootDir, "src") },
   },
@@ -17,10 +26,14 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 5173,
     strictPort: true,
+    open: "/electron/index.html",
   },
   build: {
     outDir: path.join(rootDir, "dist-desktop"),
     emptyOutDir: true,
     sourcemap: false,
+    rollupOptions: {
+      input: path.join(rootDir, "electron", "index.html"),
+    },
   },
 });
