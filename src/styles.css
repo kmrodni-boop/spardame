@@ -27,6 +27,12 @@
   --motion-fast: 250ms;
   --motion-play: 480ms;
   --motion-collect: 640ms;
+  --shadow-card:
+    0 1px 0 color-mix(in oklab, white 55%, transparent),
+    0 10px 22px rgb(0 0 0 / 0.32);
+  --shadow-card-xl:
+    0 1px 0 color-mix(in oklab, white 60%, transparent),
+    0 16px 32px rgb(0 0 0 / 0.42);
 }
 
 @layer base {
@@ -52,14 +58,109 @@
 
 .felt-grain {
   background-image:
-    radial-gradient(ellipse at 50% 30%, color-mix(in oklab, var(--color-felt-mid) 55%, transparent), transparent 58%),
-    repeating-radial-gradient(circle at 18% 22%, transparent 0 1px, rgb(0 0 0 / 0.04) 1.5px 2px);
+    radial-gradient(ellipse at 50% 18%, color-mix(in oklab, var(--color-felt-mid) 42%, transparent), transparent 52%),
+    radial-gradient(ellipse at 50% 100%, rgb(0 0 0 / 0.35), transparent 58%),
+    repeating-radial-gradient(circle at 18% 22%, transparent 0 1px, rgb(0 0 0 / 0.045) 1.5px 2px);
+}
+
+.table-rail {
+  position: relative;
+  padding: 0.55rem;
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in oklab, var(--color-cream) 22%, var(--color-felt-deep)),
+      var(--color-felt-deep) 38%,
+      color-mix(in oklab, var(--color-ink) 55%, var(--color-felt-deep)) 100%
+    );
+  box-shadow:
+    0 1px 0 color-mix(in oklab, var(--color-cream) 28%, transparent),
+    0 22px 50px rgb(0 0 0 / 0.4),
+    inset 0 1px 0 color-mix(in oklab, var(--color-cream) 18%, transparent);
+}
+
+@media (min-width: 640px) {
+  .table-rail {
+    padding: 0.7rem;
+  }
+}
+
+.table-felt {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% 28%, color-mix(in oklab, var(--color-felt-mid) 78%, transparent), transparent 56%),
+    radial-gradient(ellipse at 50% 108%, rgb(0 0 0 / 0.42), transparent 50%),
+    var(--color-felt);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--color-cream) 12%, transparent),
+    inset 0 20px 48px rgb(0 0 0 / 0.16),
+    inset 0 -32px 64px rgb(0 0 0 / 0.3);
+}
+
+.table-felt::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 1.15rem 1.35rem;
+  z-index: 0;
+  border-radius: inherit;
+  border: 1px dashed color-mix(in oklab, var(--color-cream) 16%, transparent);
+}
+
+.table-monogram {
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 50%;
+  width: min(7.5rem, 28%);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  opacity: 0.07;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23f3ead8' d='M12 2C9.2 6.1 4 10.4 4 14.2 4 17.3 6.3 19.4 9 19.4c.8 0 1.5-.2 2.1-.5L10.4 22h3.2l-.7-3.1c.6.3 1.3.5 2.1.5 2.7 0 5-2.1 5-5.2C20 10.4 14.8 6.1 12 2Z'/></svg>")
+    center / contain no-repeat;
+}
+
+.seat-pad {
+  padding: 0.3rem 0.2rem 0.35rem;
+  background: color-mix(in oklab, var(--color-felt) 55%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-cream) 10%, transparent);
+}
+
+@media (min-width: 640px) {
+  .seat-pad {
+    padding: 0.4rem 0.5rem 0.45rem;
+  }
+}
+
+.hand-dock {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-felt) 70%, var(--color-felt-deep)),
+      var(--color-felt-deep) 28%
+    );
+  box-shadow: 0 -1px 0 color-mix(in oklab, var(--color-cream) 14%, transparent);
 }
 
 .playing-card {
   transition:
     transform var(--motion-fast) var(--ease-out),
     opacity var(--motion-quick) var(--ease-out);
+}
+
+.playing-card-face {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in oklab, white 70%, var(--color-card)),
+    var(--color-card) 18%
+  );
+  box-shadow: var(--shadow-card);
+}
+
+.playing-card-face.is-xl {
+  box-shadow: var(--shadow-card-xl);
 }
 
 .font-display {
@@ -92,7 +193,7 @@
 @keyframes trick-fly-south {
   from {
     opacity: 0.15;
-    transform: translateY(8.5rem) scale(1.18) rotate(-10deg);
+    transform: translateY(11rem) scale(1.12) rotate(-10deg);
   }
   58% {
     opacity: 1;
@@ -106,7 +207,7 @@
 @keyframes trick-fly-west {
   from {
     opacity: 0.15;
-    transform: translateX(-8.5rem) scale(1.12) rotate(12deg);
+    transform: translateX(-11rem) scale(1.08) rotate(12deg);
   }
   58% {
     opacity: 1;
@@ -120,7 +221,7 @@
 @keyframes trick-fly-north {
   from {
     opacity: 0.15;
-    transform: translateY(-8.5rem) scale(1.12) rotate(-8deg);
+    transform: translateY(-11rem) scale(1.08) rotate(-8deg);
   }
   58% {
     opacity: 1;
@@ -134,7 +235,7 @@
 @keyframes trick-fly-east {
   from {
     opacity: 0.15;
-    transform: translateX(8.5rem) scale(1.12) rotate(-12deg);
+    transform: translateX(11rem) scale(1.08) rotate(-12deg);
   }
   58% {
     opacity: 1;
@@ -154,22 +255,22 @@
 }
 
 .trick-collect.collecting.trick-to-0 {
-  transform: translateY(12rem) scale(0.48);
+  transform: translateY(14rem) scale(0.48);
   opacity: 0;
 }
 
 .trick-collect.collecting.trick-to-1 {
-  transform: translateX(-12rem) scale(0.48);
+  transform: translateX(-14rem) scale(0.48);
   opacity: 0;
 }
 
 .trick-collect.collecting.trick-to-2 {
-  transform: translateY(-12rem) scale(0.48);
+  transform: translateY(-14rem) scale(0.48);
   opacity: 0;
 }
 
 .trick-collect.collecting.trick-to-3 {
-  transform: translateX(12rem) scale(0.48);
+  transform: translateX(14rem) scale(0.48);
   opacity: 0;
 }
 

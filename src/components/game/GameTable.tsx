@@ -50,11 +50,13 @@ const COLLECT_TO: Record<PlayerId, string> = {
 };
 
 const TRICK_POS: Record<PlayerId, string> = {
-  0: "bottom-[12%] left-1/2 -translate-x-1/2",
-  1: "left-[10%] top-1/2 -translate-y-1/2 -rotate-6",
-  2: "top-[10%] left-1/2 -translate-x-1/2 rotate-2",
-  3: "right-[10%] top-1/2 -translate-y-1/2 rotate-6",
+  0: "bottom-[14%] left-1/2 -translate-x-1/2 rotate-[-8deg]",
+  1: "left-[12%] top-[48%] -translate-y-1/2 rotate-[-16deg]",
+  2: "top-[10%] left-1/2 -translate-x-1/2 rotate-[5deg]",
+  3: "right-[12%] top-[48%] -translate-y-1/2 rotate-[14deg]",
 };
+
+const TABLE_SHAPE = "rounded-[42%_42%_38%_38%/48%_48%_40%_40%]";
 
 export function GameTable(props: Props) {
   const { state, names, locale } = props;
@@ -77,10 +79,10 @@ export function GameTable(props: Props) {
 
   return (
     <div className="relative flex min-h-dvh flex-col overflow-x-hidden bg-felt-deep text-cream">
-      <div className="felt-grain pointer-events-none absolute inset-0 opacity-50" />
+      <div className="felt-grain pointer-events-none absolute inset-0 opacity-55" />
       <Header {...props} />
 
-      <div className="relative mx-auto grid w-full min-w-0 max-w-4xl flex-1 grid-cols-[3.25rem_minmax(0,1fr)_3.25rem] grid-rows-[auto_minmax(14rem,1fr)] gap-2 px-2 pb-[11.5rem] pt-1 sm:grid-cols-[8rem_minmax(0,1fr)_8rem] sm:gap-3 sm:px-4 sm:pb-[12.5rem]">
+      <div className="relative mx-auto grid w-full min-w-0 max-w-6xl flex-1 grid-cols-[3.15rem_minmax(0,1fr)_3.15rem] grid-rows-[auto_minmax(18rem,1fr)] gap-1 px-2 pb-[12rem] pt-1 sm:grid-cols-[7.5rem_minmax(0,1fr)_7.5rem] sm:gap-3 sm:px-5 sm:pb-[13rem] lg:grid-cols-[9rem_minmax(0,1fr)_9rem]">
         <div className="col-start-2 row-start-1 flex justify-center">
           <Seat
             player={2}
@@ -109,46 +111,49 @@ export function GameTable(props: Props) {
           />
         </div>
 
-        <div className="relative z-10 col-start-2 row-start-2 mx-auto w-full max-w-xl overflow-visible rounded-[40%_40%_36%_36%/46%_46%_38%_38%] border border-line bg-felt shadow-[inset_0_0_80px_rgba(0,0,0,0.35)]">
-          <div className="relative mx-auto h-full min-h-[16rem] w-full overflow-visible sm:min-h-[22rem]">
-            <div className="absolute left-1/2 top-1/2 h-[11rem] w-[11rem] -translate-x-1/2 -translate-y-1/2 overflow-visible sm:h-56 sm:w-56">
-              {state.trick.length === 0 ? (
-                <div className="grid h-full place-items-center text-center">
-                  <StatusGlyph state={state} lead={lead} locale={locale} />
-                </div>
-              ) : (
-                PLAYERS.map((p) => {
-                  const play = state.trick.find((item) => item.player === p);
-                  if (!play) return null;
-                  const winning =
-                    currentWinnerOfTrick(state.trick) === p && state.trick.length > 1;
-                  const order = state.trick.findIndex((item) => item.player === p);
-                  return (
-                    <div
-                      key={play.card.id}
-                      className={cn("pointer-events-none absolute", TRICK_POS[p])}
-                      style={{ zIndex: order + 1 }}
-                    >
+        <div className="relative z-10 col-start-2 row-start-2 mx-auto flex h-full w-full max-w-3xl items-stretch overflow-visible">
+          <div className={cn("table-rail relative h-full min-h-[20rem] w-full overflow-visible sm:min-h-[26rem]", TABLE_SHAPE)}>
+            <div className={cn("table-felt relative h-full w-full overflow-visible", TABLE_SHAPE)}>
+              <div className="table-monogram" aria-hidden />
+              <div className="absolute left-1/2 top-1/2 z-10 h-[16.5rem] w-[16.5rem] -translate-x-1/2 -translate-y-1/2 overflow-visible sm:h-[21rem] sm:w-[21rem] lg:h-[24rem] lg:w-[24rem]">
+                {state.trick.length === 0 ? (
+                  <div className="grid h-full place-items-center text-center">
+                    <StatusGlyph state={state} lead={lead} locale={locale} />
+                  </div>
+                ) : (
+                  PLAYERS.map((p) => {
+                    const play = state.trick.find((item) => item.player === p);
+                    if (!play) return null;
+                    const winning =
+                      currentWinnerOfTrick(state.trick) === p && state.trick.length > 1;
+                    const order = state.trick.findIndex((item) => item.player === p);
+                    return (
                       <div
-                        className={cn(
-                          "trick-collect",
-                          collecting && winner != null && ["collecting", COLLECT_TO[winner]],
-                        )}
-                        style={{ transitionDelay: collecting ? `${order * 45}ms` : "0ms" }}
+                        key={play.card.id}
+                        className={cn("pointer-events-none absolute", TRICK_POS[p])}
+                        style={{ zIndex: order + 1 }}
                       >
-                        <div className={cn("trick-fly", FLY_FROM[p])}>
-                          <PlayingCard
-                            card={play.card}
-                            size="sm"
-                            locale={locale}
-                            className={winning ? "ring-2 ring-cream/80" : undefined}
-                          />
+                        <div
+                          className={cn(
+                            "trick-collect",
+                            collecting && winner != null && ["collecting", COLLECT_TO[winner]],
+                          )}
+                          style={{ transitionDelay: collecting ? `${order * 45}ms` : "0ms" }}
+                        >
+                          <div className={cn("trick-fly", FLY_FROM[p])}>
+                            <PlayingCard
+                              card={play.card}
+                              size="xl"
+                              locale={locale}
+                              className={winning ? "ring-2 ring-cream/75" : undefined}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })
-              )}
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -201,8 +206,10 @@ function Header({
           <span
             key={p}
             className={cn(
-              "flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-xs tabular-nums",
-              state.turn === p && state.phase === "playing" ? "border-cream bg-felt-mid" : "",
+              "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs tabular-nums",
+              state.turn === p && state.phase === "playing"
+                ? "border-cream bg-cream text-ink"
+                : "border-line bg-felt-deep/50 text-cream",
             )}
           >
             <span className="max-w-[4.5rem] truncate">{names[p]}</span>
@@ -261,7 +268,7 @@ function Seat({
   const count = state.hands[player]!.length;
   const points = pointCardsTaken(state.taken[player]!, state.variant);
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-1.5">
       <div
         className={cn(
           "rounded-full border px-3 py-1 text-xs",
@@ -271,12 +278,14 @@ function Seat({
         {name}
         {thinking ? " …" : ""}
       </div>
-      <div className="flex max-w-full items-end overflow-hidden">
-        {Array.from({ length: Math.min(count, 6) }).map((_, i) => (
-          <div key={i} className="-ml-5 first:ml-0 sm:-ml-4" style={{ zIndex: i }}>
-            <PlayingCard faceDown size="xs" locale={locale} />
-          </div>
-        ))}
+      <div className={cn("seat-pad rounded-[var(--radius-md)]")}>
+        <div className="flex max-w-full items-end overflow-hidden">
+          {Array.from({ length: Math.min(count, 6) }).map((_, i) => (
+            <div key={i} className="-ml-5 first:ml-0 sm:-ml-5" style={{ zIndex: i }}>
+              <PlayingCard faceDown size="xs" locale={locale} />
+            </div>
+          ))}
+        </div>
       </div>
       {points.length > 0 ? (
         <div className="flex max-w-[7rem] flex-wrap justify-center gap-0.5">
@@ -319,7 +328,7 @@ function HandDock({
   const status = flash ? flashCopy(locale, flash) : statusText(state, names, locale);
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-felt-deep pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2">
+    <div className="hand-dock fixed inset-x-0 bottom-0 z-30 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2">
       <p className="mx-auto max-w-xl px-4 pb-2 text-center text-sm text-cream">{status}</p>
       {passing ? (
         <div className="mb-3 flex justify-center px-4">
@@ -385,7 +394,7 @@ function StatusGlyph({
   if (lead) {
     return (
       <div className="flex flex-col items-center gap-1 text-muted">
-        <SuitMark suit={lead} className="w-8" />
+        <SuitMark suit={lead} className="w-10" />
         <span className="text-[11px] uppercase tracking-wider">{copy.suitCap[lead]}</span>
       </div>
     );

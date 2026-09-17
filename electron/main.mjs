@@ -11,7 +11,7 @@ function iconPath() {
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
-    height: 840,
+    height: 880,
     minWidth: 400,
     minHeight: 680,
     backgroundColor: "#0a241c",

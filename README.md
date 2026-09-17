@@ -11,7 +11,7 @@ Last ned fra [Releases](https://github.com/kmrodni-boop/spardame/releases/latest
 **Anbefalt (.deb):**
 
 ```bash
-sudo dpkg -i spardame_1.0.1_amd64.deb
+sudo dpkg -i spardame_1.0.2_amd64.deb
 ```
 
 Søk opp **Spardame** i app-menyen og start den som et hvilket som helst annet program.
@@ -19,8 +19,8 @@ Søk opp **Spardame** i app-menyen og start den som et hvilket som helst annet p
 **Uten sudo (AppImage):**
 
 ```bash
-chmod +x Spardame-1.0.1.AppImage
-./Spardame-1.0.1.AppImage
+chmod +x Spardame-1.0.2.AppImage
+./Spardame-1.0.2.AppImage
 ```
 
 Avinstaller .deb med `sudo apt remove spardame`.
@@ -54,5 +54,5 @@ A native Linux desktop app (window + icon), not a browser tab.
 Download the `.deb` or AppImage from [Releases](https://github.com/kmrodni-boop/spardame/releases/latest), then:
 
 ```bash
-sudo dpkg -i spardame_1.0.1_amd64.deb
+sudo dpkg -i spardame_1.0.2_amd64.deb
 ```
