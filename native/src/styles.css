@@ -1,0 +1,131 @@
+window {
+  background-color: #0a241c;
+}
+
+.menu-screen, .table-screen {
+  background-color: #0a241c;
+}
+
+.felt {
+  background-color: #12382c;
+}
+
+.app-title {
+  font-family: "Fraunces", "Georgia", serif;
+  font-size: 44px;
+  font-weight: 600;
+  color: #f3ead8;
+}
+
+.tagline {
+  font-size: 13px;
+  color: #8d9d94;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.dim-label {
+  color: #8d9d94;
+}
+
+.overline {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.pill {
+  border-radius: 999px;
+}
+
+.cta {
+  font-weight: 600;
+}
+
+.name-entry {
+  border-radius: 12px;
+}
+
+.status-label {
+  color: #f3ead8;
+  font-size: 13px;
+}
+
+.status-line {
+  color: #f3ead8;
+  font-size: 14px;
+}
+
+.hand-dock {
+  background-color: rgba(10, 36, 28, 0.6);
+  padding: 6px 8px 8px 8px;
+  border-radius: 14px 14px 0 0;
+}
+
+.score-chip {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.score-chip-active {
+  background-color: #f3ead8;
+  color: #14110e;
+  font-weight: 600;
+}
+
+.score-chip-idle {
+  background-color: rgba(243, 234, 216, 0.12);
+  color: #f3ead8;
+}
+
+.seat-name {
+  color: #f3ead8;
+  font-size: 12px;
+}
+
+.seat-name-active {
+  background-color: #f3ead8;
+  color: #14110e;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-weight: 600;
+}
+
+.seat-name-idle {
+  background-color: rgba(243, 234, 216, 0.10);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+.modal-card {
+  background-color: #f3ead8;
+  color: #14110e;
+  border-radius: 18px;
+  padding: 24px;
+}
+
+.modal-title {
+  font-family: "Fraunces", "Georgia", serif;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.score-table-header {
+  background-color: #0a241c;
+  color: #f3ead8;
+  padding: 8px 12px;
+  border-radius: 10px 10px 0 0;
+  font-weight: 600;
+}
+
+.score-table-row {
+  padding: 8px 12px;
+}
+
+.score-table-row-winner {
+  background-color: rgba(18, 56, 44, 0.12);
+  font-weight: 600;
+}

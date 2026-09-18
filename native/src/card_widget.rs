@@ -1,0 +1,425 @@
+use crate::cards::{Card, HEARTS, DIAMONDS, SPADES, CLUBS};
+use gtk::glib;
+use gtk::prelude::*;
+use gtk::subclass::prelude::*;
+use gtk::{gsk, graphene, Align, GestureClick, Overflow};
+use std::cell::{Cell, RefCell};
+use std::rc::Rc;
+
+const HEART_GLYPH: &str = "\u{2665}";
+const DIAMOND_GLYPH: &str = "\u{2666}";
+const SPADE_GLYPH: &str = "\u{2660}";
+const CLUB_GLYPH: &str = "\u{2663}";
+
+fn suit_glyph(suit: u8) -> &'static str {
+    match suit {
+        CLUBS => CLUB_GLYPH,
+        DIAMONDS => DIAMOND_GLYPH,
+        SPADES => SPADE_GLYPH,
+        HEARTS => HEART_GLYPH,
+        _ => "",
+    }
+}
+
+fn is_red(suit: u8) -> bool {
+    suit == HEARTS || suit == DIAMONDS
+}
+
+fn rgba(r: f32, g: f32, b: f32, a: f32) -> gtk::gdk::RGBA {
+    gtk::gdk::RGBA::new(r, g, b, a)
+}
+
+fn rounded_rect(x: f32, y: f32, w: f32, h: f32, radius: f32) -> gsk::RoundedRect {
+    let rect = graphene::Rect::new(x, y, w, h);
+    let sz = graphene::Size::new(radius, radius);
+    gsk::RoundedRect::new(rect, sz, sz, sz, sz)
+}
+
+fn rounded_path(x: f32, y: f32, w: f32, h: f32, radius: f32) -> gsk::Path {
+    let r = rounded_rect(x, y, w, h, radius);
+    let b = gsk::PathBuilder::new();
+    b.add_rounded_rect(&r);
+    b.to_path()
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum CardKind {
+    Face(Card),
+    Back,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CardSize {
+    Xs,
+    Sm,
+    Md,
+    Lg,
+    Xl,
+}
+
+fn card_width(size: CardSize) -> i32 {
+    match size {
+        CardSize::Xs => 38,
+        CardSize::Sm => 56,
+        CardSize::Md => 74,
+        CardSize::Lg => 82,
+        CardSize::Xl => 110,
+    }
+}
+
+fn card_radius(size: CardSize) -> f32 {
+    match size {
+        CardSize::Xs => 5.0,
+        CardSize::Sm => 6.0,
+        CardSize::Md => 7.0,
+        CardSize::Lg => 8.0,
+        CardSize::Xl => 11.0,
+    }
+}
+
+mod imp {
+    use super::*;
+
+    pub struct CardWidget {
+        pub kind: RefCell<CardKind>,
+        pub size: Cell<CardSize>,
+        pub selected: Cell<bool>,
+        pub dimmed: Cell<bool>,
+        pub highlight: Cell<bool>,
+        pub tint_red: Cell<bool>,
+        pub face_letter: RefCell<String>,
+        pub card_id: Cell<u8>,
+        pub on_click: RefCell<Option<Rc<dyn Fn()>>>,
+    }
+
+    impl Default for CardWidget {
+        fn default() -> Self {
+            Self {
+                kind: RefCell::new(CardKind::Back),
+                size: Cell::new(CardSize::Md),
+                selected: Cell::new(false),
+                dimmed: Cell::new(false),
+                highlight: Cell::new(false),
+                tint_red: Cell::new(true),
+                face_letter: RefCell::new(String::new()),
+                card_id: Cell::new(0),
+                on_click: RefCell::new(None),
+            }
+        }
+    }
+
+    #[glib::object_subclass]
+    impl ObjectSubclass for CardWidget {
+        const NAME: &'static str = "SpardameCard";
+        type Type = super::CardWidget;
+        type ParentType = gtk::Widget;
+    }
+
+    impl ObjectImpl for CardWidget {
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.obj();
+            obj.set_overflow(Overflow::Hidden);
+            obj.set_halign(Align::Center);
+            obj.set_valign(Align::Center);
+            let gesture = GestureClick::new();
+            let imp_clone = self.to_owned();
+            gesture.connect_released(move |_, _, _, _| {
+                if let Some(cb) = imp_clone.on_click.borrow().as_ref() {
+                    cb();
+                }
+            });
+            obj.add_controller(gesture);
+        }
+    }
+
+    impl WidgetImpl for CardWidget {
+        fn measure(&self, _orientation: gtk::Orientation, _for_size: i32) -> (i32, i32, i32, i32) {
+            let w = card_width(self.size.get());
+            let h = (w as f32 * 1.4) as i32;
+            (w, w, h, h)
+        }
+
+        fn snapshot(&self, snapshot: &gtk::Snapshot) {
+            let obj = self.obj();
+            let w = obj.width() as f32;
+            let h = obj.height() as f32;
+            if w < 1.0 || h < 1.0 {
+                return;
+            }
+            let radius = card_radius(self.size.get());
+
+            // shadow
+            snapshot.push_rounded_clip(&rounded_rect(2.0, 3.0, w, h, radius));
+            snapshot.append_color(&rgba(0.0, 0.0, 0.0, 0.35), &graphene::Rect::new(2.0, 3.0, w, h));
+            snapshot.pop();
+
+            match *self.kind.borrow() {
+                CardKind::Back => self.draw_back(snapshot, w, h, radius),
+                CardKind::Face(card) => self.draw_face(snapshot, w, h, radius, card),
+            }
+
+            if self.selected.get() {
+                snapshot.push_rounded_clip(&rounded_rect(0.0, 0.0, w, h, radius));
+                snapshot.append_color(&rgba(0.95, 0.92, 0.85, 0.55), &graphene::Rect::new(0.0, 0.0, w, h));
+                snapshot.pop();
+            }
+            if self.highlight.get() {
+                let path = rounded_path(0.0, 0.0, w, h, radius);
+                snapshot.append_stroke(&path, &gsk::Stroke::new(3.0), &rgba(0.95, 0.92, 0.85, 0.9));
+            }
+        }
+    }
+
+    impl CardWidget {
+        fn draw_back(&self, snapshot: &gtk::Snapshot, w: f32, h: f32, radius: f32) {
+            let (deep, mid) = if self.tint_red.get() {
+                (rgba(0.49, 0.08, 0.18, 1.0), rgba(0.69, 0.12, 0.27, 1.0))
+            } else {
+                (rgba(0.08, 0.21, 0.42, 1.0), rgba(0.12, 0.31, 0.59, 1.0))
+            };
+            let bounds = graphene::Rect::new(0.0, 0.0, w, h);
+            snapshot.append_linear_gradient(
+                &bounds,
+                &graphene::Point::new(0.0, 0.0),
+                &graphene::Point::new(0.0, h),
+                &[gsk::ColorStop::new(0.0, deep), gsk::ColorStop::new(1.0, mid)],
+            );
+
+            let pad = w * 0.07;
+            let ir = card_radius(self.size.get()) * 0.7;
+            snapshot.push_rounded_clip(&rounded_rect(pad, pad, w - 2.0 * pad, h - 2.0 * pad, ir));
+            let ib = graphene::Rect::new(pad, pad, w - 2.0 * pad, h - 2.0 * pad);
+            snapshot.append_linear_gradient(
+                &ib,
+                &graphene::Point::new(0.0, pad),
+                &graphene::Point::new(0.0, h - pad),
+                &[gsk::ColorStop::new(0.0, mid), gsk::ColorStop::new(1.0, deep)],
+            );
+
+            // spade monogram
+            let obj = self.obj();
+            let layout = obj.create_pango_layout(Some(SPADE_GLYPH));
+            let mut desc = gtk::pango::FontDescription::from_string("Sans Bold");
+            desc.set_size((h * 0.34 * gtk::pango::SCALE as f32) as i32);
+            layout.set_font_description(Some(&desc));
+            let (lw, lh) = layout.pixel_size();
+            snapshot.save();
+            snapshot.translate(&graphene::Point::new(w / 2.0 - lw as f32 / 2.0, h / 2.0 - lh as f32 / 2.0));
+            snapshot.append_layout(&layout, &rgba(0.95, 0.92, 0.85, 0.8));
+            snapshot.restore();
+            snapshot.pop();
+        }
+
+        fn draw_face(&self, snapshot: &gtk::Snapshot, w: f32, h: f32, radius: f32, card: Card) {
+            let cream = rgba(1.0, 0.99, 0.97, 1.0);
+            snapshot.push_rounded_clip(&rounded_rect(0.0, 0.0, w, h, radius));
+            snapshot.append_color(&cream, &graphene::Rect::new(0.0, 0.0, w, h));
+
+            let edge = if is_red(card.suit()) {
+                rgba(0.70, 0.14, 0.17, 0.25)
+            } else {
+                rgba(0.85, 0.80, 0.71, 1.0)
+            };
+            let path = rounded_path(0.0, 0.0, w, h, radius);
+            snapshot.append_stroke(&path, &gsk::Stroke::new(1.0), &edge);
+            snapshot.pop();
+
+            let suit = card.suit();
+            let letter = self.face_letter.borrow().clone();
+            let ink = if is_red(suit) {
+                rgba(0.70, 0.14, 0.17, 1.0)
+            } else {
+                rgba(0.08, 0.07, 0.05, 1.0)
+            };
+
+            let obj = self.obj();
+            self.draw_corner(&obj, snapshot, &letter, suit, w, h, true, &ink);
+            self.draw_corner(&obj, snapshot, &letter, suit, w, h, false, &ink);
+
+            let is_face = card.rank() >= 11;
+            let is_ace = card.rank() == 14;
+            if is_face {
+                let pad_x = w * 0.16;
+                let pad_y = h * 0.14;
+                snapshot.push_rounded_clip(&rounded_rect(pad_x, pad_y, w - 2.0 * pad_x, h - 2.0 * pad_y, radius * 0.55));
+                let ib = graphene::Rect::new(pad_x, pad_y, w - 2.0 * pad_x, h - 2.0 * pad_y);
+                snapshot.append_linear_gradient(
+                    &ib,
+                    &graphene::Point::new(pad_x, pad_y),
+                    &graphene::Point::new(pad_x, h - pad_y),
+                    &[gsk::ColorStop::new(0.0, cream), gsk::ColorStop::new(1.0, rgba(0.95, 0.91, 0.82, 1.0))],
+                );
+                let ipath = rounded_path(pad_x, pad_y, w - 2.0 * pad_x, h - 2.0 * pad_y, radius * 0.55);
+                snapshot.append_stroke(&ipath, &gsk::Stroke::new(1.0), &rgba(0.85, 0.80, 0.71, 0.9));
+                snapshot.pop();
+
+                let layout = obj.create_pango_layout(Some(&letter));
+                let mut desc = gtk::pango::FontDescription::from_string("Serif Bold");
+                desc.set_size((h * 0.28 * gtk::pango::SCALE as f32) as i32);
+                layout.set_font_description(Some(&desc));
+                let (lw, lh) = layout.pixel_size();
+                snapshot.save();
+                snapshot.translate(&graphene::Point::new(w / 2.0 - lw as f32 / 2.0, h * 0.30));
+                snapshot.append_layout(&layout, &ink);
+                snapshot.restore();
+
+                let layout = obj.create_pango_layout(Some(suit_glyph(suit)));
+                let mut desc = gtk::pango::FontDescription::from_string("Sans");
+                desc.set_size((h * 0.13 * gtk::pango::SCALE as f32) as i32);
+                layout.set_font_description(Some(&desc));
+                let (lw, _) = layout.pixel_size();
+                snapshot.save();
+                snapshot.translate(&graphene::Point::new(w / 2.0 - lw as f32 / 2.0, h * 0.62));
+                snapshot.append_layout(&layout, &ink);
+                snapshot.restore();
+            } else {
+                let pips = pip_positions(is_ace, card.rank());
+                for &(px, py, flip) in pips.iter() {
+                    self.draw_pip(&obj, snapshot, suit, w, h, px, py, flip, &ink);
+                }
+            }
+        }
+
+        fn draw_corner(&self, obj: &super::CardWidget, snapshot: &gtk::Snapshot, letter: &str, suit: u8, w: f32, h: f32, top_left: bool, ink: &gtk::gdk::RGBA) {
+            let scale = match self.size.get() {
+                CardSize::Xs => 0.32,
+                CardSize::Sm => 0.38,
+                CardSize::Md => 0.42,
+                CardSize::Lg => 0.45,
+                CardSize::Xl => 0.60,
+            };
+            let layout = obj.create_pango_layout(Some(letter));
+            let mut desc = gtk::pango::FontDescription::from_string("Serif Bold");
+            desc.set_size((h * scale * gtk::pango::SCALE as f32) as i32);
+            layout.set_font_description(Some(&desc));
+            let (lw, lh) = layout.pixel_size();
+            snapshot.save();
+            let x = if top_left { w * 0.08 } else { w - w * 0.08 - lw as f32 };
+            let y = if top_left { h * 0.06 } else { h - h * 0.06 - lh as f32 };
+            snapshot.translate(&graphene::Point::new(x, y));
+            snapshot.append_layout(&layout, ink);
+            snapshot.restore();
+
+            let layout = obj.create_pango_layout(Some(suit_glyph(suit)));
+            let mut desc = gtk::pango::FontDescription::from_string("Sans");
+            desc.set_size((h * scale * 0.9 * gtk::pango::SCALE as f32) as i32);
+            layout.set_font_description(Some(&desc));
+            let (sw, sh) = layout.pixel_size();
+            snapshot.save();
+            let gx = if top_left { x + (lw as f32 - sw as f32) / 2.0 } else { w - w * 0.08 - sw as f32 - (lw as f32 - sw as f32) / 2.0 };
+            let gy = if top_left { y + lh as f32 } else { h - h * 0.06 - lh as f32 - sh as f32 };
+            snapshot.translate(&graphene::Point::new(gx, gy));
+            snapshot.append_layout(&layout, ink);
+            snapshot.restore();
+        }
+
+        fn draw_pip(&self, obj: &super::CardWidget, snapshot: &gtk::Snapshot, suit: u8, w: f32, h: f32, px: f32, py: f32, flip: bool, ink: &gtk::gdk::RGBA) {
+            let scale = match self.size.get() {
+                CardSize::Xs => 0.36,
+                CardSize::Sm => 0.42,
+                CardSize::Md => 0.50,
+                CardSize::Lg => 0.55,
+                CardSize::Xl => 0.85,
+            };
+            let layout = obj.create_pango_layout(Some(suit_glyph(suit)));
+            let mut desc = gtk::pango::FontDescription::from_string("Sans");
+            desc.set_size((h * scale * gtk::pango::SCALE as f32) as i32);
+            layout.set_font_description(Some(&desc));
+            let (pw, ph) = layout.pixel_size();
+            snapshot.save();
+            if flip {
+                snapshot.translate(&graphene::Point::new(w * px / 100.0 + pw as f32 / 2.0, h * py / 100.0 + ph as f32 / 2.0));
+                snapshot.rotate(180.0_f32.to_radians());
+                snapshot.translate(&graphene::Point::new(-pw as f32 / 2.0, -ph as f32 / 2.0));
+            } else {
+                snapshot.translate(&graphene::Point::new(w * px / 100.0 - pw as f32 / 2.0, h * py / 100.0 - ph as f32 / 2.0));
+            }
+            snapshot.append_layout(&layout, ink);
+            snapshot.restore();
+        }
+    }
+}
+
+glib::wrapper! {
+    pub struct CardWidget(ObjectSubclass<imp::CardWidget>)
+        @extends gtk::Widget,
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
+}
+
+impl CardWidget {
+    pub fn new_face(card: Card, face_letter: &str, size: CardSize) -> Self {
+        let obj: CardWidget = glib::Object::new();
+        obj.imp().kind.replace(CardKind::Face(card));
+        obj.imp().size.set(size);
+        obj.imp().face_letter.replace(face_letter.to_string());
+        obj.imp().card_id.set(card.id);
+        obj.set_tooltip_text(Some(&label_for(card)));
+        obj.queue_draw();
+        obj
+    }
+
+    pub fn new_back(size: CardSize, tint_red: bool) -> Self {
+        let obj: CardWidget = glib::Object::new();
+        obj.imp().kind.replace(CardKind::Back);
+        obj.imp().size.set(size);
+        obj.imp().tint_red.set(tint_red);
+        obj.queue_draw();
+        obj
+    }
+
+    pub fn set_selected(&self, v: bool) {
+        self.imp().selected.set(v);
+        self.queue_draw();
+    }
+    pub fn set_dimmed(&self, v: bool) {
+        self.imp().dimmed.set(v);
+        self.set_opacity(if v { 0.45 } else { 1.0 });
+    }
+    pub fn set_highlight(&self, v: bool) {
+        self.imp().highlight.set(v);
+        self.queue_draw();
+    }
+    pub fn set_on_click(&self, cb: impl Fn() + 'static) {
+        self.imp().on_click.replace(Some(Rc::new(cb)));
+    }
+    pub fn card_id(&self) -> u8 {
+        self.imp().card_id.get()
+    }
+}
+
+fn label_for(card: Card) -> String {
+    let suit = match card.suit() {
+        CLUBS => "Clubs",
+        DIAMONDS => "Diamonds",
+        SPADES => "Spades",
+        HEARTS => "Hearts",
+        _ => "",
+    };
+    let rank = match card.rank() {
+        11 => "Jack",
+        12 => "Queen",
+        13 => "King",
+        14 => "Ace",
+        r => return format!("{} {}", suit, r),
+    };
+    format!("{} of {}", rank, suit)
+}
+
+fn pip_positions(is_ace: bool, rank: u8) -> Vec<(f32, f32, bool)> {
+    if is_ace {
+        return vec![(50.0, 50.0, false)];
+    }
+    match rank {
+        2 => vec![(50.0, 22.0, false), (50.0, 78.0, true)],
+        3 => vec![(50.0, 20.0, false), (50.0, 50.0, false), (50.0, 80.0, true)],
+        4 => vec![(32.0, 22.0, false), (68.0, 22.0, false), (32.0, 78.0, true), (68.0, 78.0, true)],
+        5 => vec![(32.0, 22.0, false), (68.0, 22.0, false), (50.0, 50.0, false), (32.0, 78.0, true), (68.0, 78.0, true)],
+        6 => vec![(32.0, 22.0, false), (68.0, 22.0, false), (32.0, 50.0, false), (68.0, 50.0, false), (32.0, 78.0, true), (68.0, 78.0, true)],
+        7 => vec![(32.0, 20.0, false), (68.0, 20.0, false), (50.0, 36.0, false), (32.0, 50.0, false), (68.0, 50.0, false), (32.0, 80.0, true), (68.0, 80.0, true)],
+        8 => vec![(32.0, 18.0, false), (68.0, 18.0, false), (32.0, 40.0, false), (68.0, 40.0, false), (32.0, 60.0, true), (68.0, 60.0, true), (32.0, 82.0, true), (68.0, 82.0, true)],
+        9 => vec![(32.0, 18.0, false), (68.0, 18.0, false), (32.0, 38.0, false), (68.0, 38.0, false), (50.0, 50.0, false), (32.0, 62.0, true), (68.0, 62.0, true), (32.0, 82.0, true), (68.0, 82.0, true)],
+        10 => vec![(32.0, 16.0, false), (68.0, 16.0, false), (50.0, 28.0, false), (32.0, 38.0, false), (68.0, 38.0, false), (32.0, 62.0, true), (68.0, 62.0, true), (50.0, 72.0, true), (32.0, 84.0, true), (68.0, 84.0, true)],
+        _ => vec![],
+    }
+}

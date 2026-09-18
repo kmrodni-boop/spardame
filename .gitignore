@@ -19,3 +19,4 @@ screenshots/
 !.grok/app-env.json
 AGENTS.md
 AGENTS.project.md
+native/target/
