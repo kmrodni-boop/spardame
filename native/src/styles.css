@@ -1,18 +1,34 @@
-window {
+window, .app-root, .menu-screen, .table-screen {
   background-color: #0a241c;
+  color: #f3ead8;
 }
 
-.menu-screen, .table-screen {
+headerbar {
   background-color: #0a241c;
+  color: #f3ead8;
+  border-bottom-color: alpha(#f3ead8, 0.08);
+}
+
+headerbar windowcontrols button {
+  color: #f3ead8;
 }
 
 .felt {
   background-color: #12382c;
 }
 
+.felt-well {
+  background-color: #0e2c22;
+  border-radius: 140px;
+  border: 1px solid alpha(#f3ead8, 0.14);
+  padding: 18px 28px;
+  min-width: 280px;
+  min-height: 190px;
+}
+
 .app-title {
-  font-family: "Fraunces", "Georgia", serif;
-  font-size: 44px;
+  font-family: "Fraunces", "Georgia", "Noto Serif", serif;
+  font-size: 42px;
   font-weight: 600;
   color: #f3ead8;
 }
@@ -32,20 +48,34 @@ window {
 
 .overline {
   font-size: 11px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
+  color: #8d9d94;
 }
 
-.pill {
+button.pill {
   border-radius: 999px;
+  padding: 8px 14px;
 }
 
-.cta {
+button.cta, button.suggested-action {
   font-weight: 600;
 }
 
-.name-entry {
+button.suggested-action {
+  background-color: #f3ead8;
+  color: #14110e;
+}
+
+togglebutton:checked {
+  background-color: #f3ead8;
+  color: #14110e;
+  font-weight: 600;
+}
+
+entry.name-entry {
   border-radius: 12px;
+  background-color: alpha(#f3ead8, 0.08);
+  color: #f3ead8;
+  padding: 8px 12px;
 }
 
 .status-label {
@@ -59,14 +89,14 @@ window {
 }
 
 .hand-dock {
-  background-color: rgba(10, 36, 28, 0.6);
-  padding: 6px 8px 8px 8px;
-  border-radius: 14px 14px 0 0;
+  background-color: alpha(#0a241c, 0.55);
+  padding: 8px 10px 10px 10px;
+  border-radius: 16px 16px 0 0;
 }
 
 .score-chip {
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 4px 12px;
   font-size: 12px;
 }
 
@@ -77,55 +107,45 @@ window {
 }
 
 .score-chip-idle {
-  background-color: rgba(243, 234, 216, 0.12);
+  background-color: alpha(#f3ead8, 0.12);
   color: #f3ead8;
 }
 
 .seat-name {
   color: #f3ead8;
   font-size: 12px;
+  border-radius: 999px;
+  padding: 2px 10px;
 }
 
 .seat-name-active {
   background-color: #f3ead8;
   color: #14110e;
-  border-radius: 999px;
-  padding: 2px 10px;
   font-weight: 600;
 }
 
 .seat-name-idle {
-  background-color: rgba(243, 234, 216, 0.10);
-  border-radius: 999px;
-  padding: 2px 10px;
-}
-
-.modal-card {
-  background-color: #f3ead8;
-  color: #14110e;
-  border-radius: 18px;
-  padding: 24px;
+  background-color: alpha(#f3ead8, 0.10);
 }
 
 .modal-title {
-  font-family: "Fraunces", "Georgia", serif;
-  font-size: 24px;
+  font-family: "Georgia", "Noto Serif", serif;
+  font-size: 20px;
   font-weight: 600;
 }
 
 .score-table-header {
   background-color: #0a241c;
   color: #f3ead8;
-  padding: 8px 12px;
-  border-radius: 10px 10px 0 0;
+  padding: 6px 10px;
+  border-radius: 8px;
   font-weight: 600;
 }
 
 .score-table-row {
-  padding: 8px 12px;
+  padding: 6px 10px;
 }
 
 .score-table-row-winner {
-  background-color: rgba(18, 56, 44, 0.12);
   font-weight: 600;
 }

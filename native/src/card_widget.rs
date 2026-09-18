@@ -134,10 +134,17 @@ mod imp {
     }
 
     impl WidgetImpl for CardWidget {
-        fn measure(&self, _orientation: gtk::Orientation, _for_size: i32) -> (i32, i32, i32, i32) {
+        fn measure(&self, orientation: gtk::Orientation, _for_size: i32) -> (i32, i32, i32, i32) {
             let w = card_width(self.size.get());
             let h = (w as f32 * 1.4) as i32;
-            (w, w, h, h)
+            match orientation {
+                gtk::Orientation::Horizontal => (w, w, -1, -1),
+                _ => (h, h, -1, -1),
+            }
+        }
+
+        fn request_mode(&self) -> gtk::SizeRequestMode {
+            gtk::SizeRequestMode::ConstantSize
         }
 
         fn snapshot(&self, snapshot: &gtk::Snapshot) {
@@ -178,6 +185,7 @@ mod imp {
             } else {
                 (rgba(0.08, 0.21, 0.42, 1.0), rgba(0.12, 0.31, 0.59, 1.0))
             };
+            snapshot.push_rounded_clip(&rounded_rect(0.0, 0.0, w, h, radius));
             let bounds = graphene::Rect::new(0.0, 0.0, w, h);
             snapshot.append_linear_gradient(
                 &bounds,
@@ -197,17 +205,54 @@ mod imp {
                 &[gsk::ColorStop::new(0.0, mid), gsk::ColorStop::new(1.0, deep)],
             );
 
-            // spade monogram
+            let cream = rgba(0.95, 0.92, 0.85, 0.22);
+            let step = (w - 2.0 * pad).max(8.0) / 5.5;
+            let mut row = 0;
+            let mut y = pad + step * 0.2;
+            while y < h - pad {
+                let offset = if row % 2 == 1 { step * 0.5 } else { 0.0 };
+                let mut x = pad + step * 0.15 + offset;
+                while x < w - pad {
+                    snapshot.save();
+                    snapshot.translate(&graphene::Point::new(x, y));
+                    snapshot.rotate(45.0);
+                    let s = step * 0.36;
+                    snapshot.append_color(&cream, &graphene::Rect::new(-s * 0.5, -s * 0.5, s, s));
+                    snapshot.restore();
+                    x += step;
+                }
+                y += step * 0.52;
+                row += 1;
+            }
+
+            let medal_r = (w.min(h) * 0.22).max(8.0);
+            snapshot.push_rounded_clip(&rounded_rect(
+                w * 0.5 - medal_r,
+                h * 0.5 - medal_r,
+                medal_r * 2.0,
+                medal_r * 2.0,
+                medal_r,
+            ));
+            snapshot.append_color(
+                &rgba(0.95, 0.92, 0.85, 0.16),
+                &graphene::Rect::new(w * 0.5 - medal_r, h * 0.5 - medal_r, medal_r * 2.0, medal_r * 2.0),
+            );
+            snapshot.pop();
+
             let obj = self.obj();
             let layout = obj.create_pango_layout(Some(SPADE_GLYPH));
             let mut desc = gtk::pango::FontDescription::from_string("Sans Bold");
-            desc.set_size((h * 0.34 * gtk::pango::SCALE as f32) as i32);
+            desc.set_size((h * 0.28 * gtk::pango::SCALE as f32) as i32);
             layout.set_font_description(Some(&desc));
             let (lw, lh) = layout.pixel_size();
             snapshot.save();
-            snapshot.translate(&graphene::Point::new(w / 2.0 - lw as f32 / 2.0, h / 2.0 - lh as f32 / 2.0));
-            snapshot.append_layout(&layout, &rgba(0.95, 0.92, 0.85, 0.8));
+            snapshot.translate(&graphene::Point::new(
+                w / 2.0 - lw as f32 / 2.0,
+                h / 2.0 - lh as f32 / 2.0,
+            ));
+            snapshot.append_layout(&layout, &rgba(0.95, 0.92, 0.85, 0.92));
             snapshot.restore();
+            snapshot.pop();
             snapshot.pop();
         }
 
@@ -330,7 +375,7 @@ mod imp {
             snapshot.save();
             if flip {
                 snapshot.translate(&graphene::Point::new(w * px / 100.0 + pw as f32 / 2.0, h * py / 100.0 + ph as f32 / 2.0));
-                snapshot.rotate(180.0_f32.to_radians());
+                snapshot.rotate(180.0);
                 snapshot.translate(&graphene::Point::new(-pw as f32 / 2.0, -ph as f32 / 2.0));
             } else {
                 snapshot.translate(&graphene::Point::new(w * px / 100.0 - pw as f32 / 2.0, h * py / 100.0 - ph as f32 / 2.0));
@@ -354,6 +399,9 @@ impl CardWidget {
         obj.imp().size.set(size);
         obj.imp().face_letter.replace(face_letter.to_string());
         obj.imp().card_id.set(card.id);
+        let w = card_width(size);
+        let h = (w as f32 * 1.4) as i32;
+        obj.set_size_request(w, h);
         obj.set_tooltip_text(Some(&label_for(card)));
         obj.queue_draw();
         obj
@@ -364,6 +412,9 @@ impl CardWidget {
         obj.imp().kind.replace(CardKind::Back);
         obj.imp().size.set(size);
         obj.imp().tint_red.set(tint_red);
+        let w = card_width(size);
+        let h = (w as f32 * 1.4) as i32;
+        obj.set_size_request(w, h);
         obj.queue_draw();
         obj
     }

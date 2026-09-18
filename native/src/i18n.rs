@@ -253,6 +253,7 @@ pub fn strings(locale: Locale) -> Copy {
     }
 }
 
+#[allow(dead_code)]
 pub fn html_lang(locale: Locale) -> &'static str {
     match locale {
         Locale::En => "en",
@@ -362,10 +363,10 @@ const EN: Copy = Copy {
     s_diamonds_c: "Diamonds",
     s_spades_c: "Spades",
     s_hearts_c: "Hearts",
-    face_jack: "jack",
-    face_queen: "queen",
-    face_king: "king",
-    face_ace: "ace",
+    face_jack: "J",
+    face_queen: "Q",
+    face_king: "K",
+    face_ace: "A",
     var_spardame_name: "Hearts",
     var_spardame_short: "Standard",
     var_spardame_blurb:

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Spardame
+GenericName=Hearts
+Comment=Spardame and Hearts — avoid hearts and the queen of spades
+Exec=spardame
+Icon=no.spardame.app
+Terminal=false
+Categories=Game;CardGame;
+Keywords=hearts;cards;spardame;hjerter;black lady;
+StartupWMClass=no.spardame.app
+StartupNotify=true

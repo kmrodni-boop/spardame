@@ -72,11 +72,14 @@ impl Rng {
             .map(|d| d.as_nanos() as u32)
             .unwrap_or(0xdead_beef)
             .wrapping_mul(2654435761);
+        Self::from_seed(seed | 1)
+    }
+    pub fn from_seed(seed: u32) -> Self {
         Self { state: seed }
     }
     pub fn next_f64(&mut self) -> f64 {
         self.state = self.state.wrapping_mul(1664525).wrapping_add(1013904223);
-        (self.state >> 8) as f64 / 16777216.0
+        (self.state as f64) / 4_294_967_296.0
     }
 }
 

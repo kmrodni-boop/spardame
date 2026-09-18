@@ -1,23 +1,35 @@
 [package]
 name = "spardame"
-version = "1.0.4"
+version = "1.0.5"
 edition = "2021"
 description = "Spardame and Hearts card game for Linux"
 license = "MIT"
 authors = ["Kai Marius Alm <235362284+kmrodni-boop@users.noreply.github.com>"]
 homepage = "https://github.com/kmrodni-boop/spardame"
+repository = "https://github.com/kmrodni-boop/spardame"
+
+[lib]
+name = "spardame"
+path = "src/lib.rs"
 
 [[bin]]
 name = "spardame"
 path = "src/main.rs"
+required-features = ["ui"]
+
+[features]
+default = ["ui"]
+ui = ["dep:gtk", "dep:libadwaita"]
 
 [dependencies]
-gtk = { version = "0.9", package = "gtk4", features = ["v4_14"] }
-libadwaita = { version = "0.7", package = "libadwaita", features = ["v1_5"] }
+gtk = { version = "0.9", package = "gtk4", features = ["v4_14"], optional = true }
+libadwaita = { version = "0.7", package = "libadwaita", features = ["v1_5"], optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [profile.release]
-opt-level = 2
-lto = false
-codegen-units = 16
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

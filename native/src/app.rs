@@ -285,7 +285,7 @@ impl App {
     }
 }
 
-fn fill_ai_passes(mut state: GameState, difficulty: Difficulty, rng: &mut Rng) -> GameState {
+fn fill_ai_passes(mut state: GameState, difficulty: Difficulty, _rng: &mut Rng) -> GameState {
     if state.phase != Phase::Passing {
         return state;
     }

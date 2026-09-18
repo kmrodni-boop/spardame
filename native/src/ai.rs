@@ -18,10 +18,10 @@ fn rand_f64() -> f64 {
     }
     SEED.with(|s| {
         let mut v = s.get().wrapping_mul(1664525).wrapping_add(1013904223);
-        v ^= (std::time::SystemTime::now()
+        v ^= std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.subsec_nanos())
-            .unwrap_or(0));
+            .unwrap_or(0);
         s.set(v);
         (v >> 8) as f64 / 16777216.0
     })
@@ -171,7 +171,10 @@ fn moon_urge(state: &GameState, player: PlayerId) -> u8 {
 pub fn choose_play(state: &GameState, player: PlayerId, difficulty: Difficulty) -> Card {
     let legal = legal_moves(state, player);
     if legal.is_empty() {
-        panic!("Ingen lovlige trekk");
+        if let Some(&card) = state.hands.get(player).and_then(|h| h.first()) {
+            return card;
+        }
+        return Card::new(CLUBS, 2);
     }
     if legal.len() == 1 {
         return legal[0];
@@ -307,7 +310,7 @@ fn eval_lead(
     queen_out: bool,
     jack_out: bool,
     unseen: &[Card],
-    difficulty: Difficulty,
+    _difficulty: Difficulty,
 ) -> f64 {
     let v = get_variant(state.variant);
     let hand = &state.hands[player];
