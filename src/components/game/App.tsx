@@ -10,7 +10,7 @@ import {
   sfxTrick,
   unlockAudio,
 } from "@/game/audio";
-import { htmlLang } from "@/game/i18n";
+import { htmlLang, t } from "@/game/i18n";
 import { seatName, useGame } from "@/game/store";
 import { PLAYERS } from "@/game/types";
 import { GameTable } from "./GameTable";
@@ -39,6 +39,7 @@ export function GameApp() {
 
   useEffect(() => {
     document.documentElement.lang = htmlLang(settings.locale);
+    document.title = t(settings.locale).appName;
   }, [settings.locale]);
 
   useEffect(() => {
@@ -127,7 +128,9 @@ export function GameApp() {
           locale={settings.locale}
           onToggleMute={() => {
             unlockAudio();
-            useGame.getState().setSettings({ muted: !settings.muted });
+            const next = !useGame.getState().settings.muted;
+            useGame.getState().setSettings({ muted: next });
+            if (!next) sfxCard();
           }}
           onRules={() => useGame.getState().setRulesOpen(true)}
           onMenu={() => useGame.getState().abandon()}

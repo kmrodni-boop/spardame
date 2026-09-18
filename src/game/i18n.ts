@@ -10,6 +10,7 @@ export const LOCALES: { id: Locale; label: string }[] = [
 type Strings = {
   langName: string;
   cardGame: string;
+  appName: string;
   tagline: string;
   yourName: string;
   you: string;
@@ -87,6 +88,7 @@ export const STRINGS: Record<Locale, Strings> = {
   en: {
     langName: "English",
     cardGame: "Card game",
+    appName: "Hearts",
     tagline:
       "Avoid hearts and the queen of spades. Take the jack of diamonds. Four players, three opponents, official rules.",
     yourName: "Your name",
@@ -107,8 +109,8 @@ export const STRINGS: Record<Locale, Strings> = {
     toLimit: (n) => `to ${n}`,
     variant: {
       spardame: {
-        name: "Spardame",
-        short: "Norwegian",
+        name: "Hearts",
+        short: "Standard",
         blurb:
           "Queen of spades 100, ace of hearts 20, other hearts 10, jack of diamonds −100. First to 500.",
       },
@@ -168,7 +170,7 @@ export const STRINGS: Record<Locale, Strings> = {
     moon: (name) => `${name} shot the moon — all hearts and the queen of spades.`,
     scoreHint: (limit) => `First to ${limit} loses the game. Lowest total wins.`,
     rulesTitle: "Rules",
-    rulesSpardameTitle: "Spardame (Norwegian)",
+    rulesSpardameTitle: "Hearts",
     rulesSpardameBody:
       "Four players, 52 cards, 13 each. Score as few points as possible. When someone reaches 500 the game ends — lowest total wins.",
     rulesSpardamePoints: [
@@ -195,6 +197,7 @@ export const STRINGS: Record<Locale, Strings> = {
   nb: {
     langName: "Norsk",
     cardGame: "Kortspill",
+    appName: "Spardame",
     tagline:
       "Unngå hjerter og spar dame. Ta ruter knekt. Fire spillere, tre motstandere, offisielle regler.",
     yourName: "Ditt navn",

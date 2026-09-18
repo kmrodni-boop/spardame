@@ -1,6 +1,7 @@
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let unlocked = false;
+let noise: AudioBuffer | null = null;
 
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -9,7 +10,7 @@ function getCtx(): AudioContext | null {
     if (!AC) return null;
     ctx = new AC({ latencyHint: "interactive" });
     master = ctx.createGain();
-    master.gain.value = 0.7;
+    master.gain.value = 0.75;
     master.connect(ctx.destination);
   }
   return ctx;
@@ -20,6 +21,53 @@ export function unlockAudio(): void {
   if (!audio || !master) return;
   if (audio.state === "suspended") void audio.resume();
   unlocked = true;
+}
+
+function noiseBuffer(audio: AudioContext): AudioBuffer {
+  if (noise && noise.sampleRate === audio.sampleRate) return noise;
+  const length = Math.floor(audio.sampleRate * 0.35);
+  const buf = audio.createBuffer(1, length, audio.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+  noise = buf;
+  return buf;
+}
+
+type Burst = {
+  when?: number;
+  duration: number;
+  gain: number;
+  freq: number;
+  q?: number;
+  filter?: BiquadFilterType;
+  rate?: number;
+};
+
+function burst(opts: Burst): void {
+  const audio = getCtx();
+  if (!audio || !master || !unlocked) return;
+  const t = audio.currentTime + (opts.when ?? 0);
+  const src = audio.createBufferSource();
+  src.buffer = noiseBuffer(audio);
+  src.playbackRate.value = opts.rate ?? 1;
+  const filter = audio.createBiquadFilter();
+  filter.type = opts.filter ?? "bandpass";
+  filter.frequency.setValueAtTime(opts.freq, t);
+  filter.Q.value = opts.q ?? 1;
+  const g = audio.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(opts.gain, 0.0002), t + 0.0025);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + opts.duration);
+  src.connect(filter);
+  filter.connect(g);
+  g.connect(master);
+  src.start(t);
+  src.stop(t + opts.duration + 0.04);
+  src.onended = () => {
+    src.disconnect();
+    filter.disconnect();
+    g.disconnect();
+  };
 }
 
 function beep(freq: number, dur: number, type: OscillatorType, gain = 0.07, slide?: number): void {
@@ -39,26 +87,36 @@ function beep(freq: number, dur: number, type: OscillatorType, gain = 0.07, slid
   osc.stop(audio.currentTime + dur + 0.02);
 }
 
+/** Snap of a playing card hitting felt — noise layers, no pitched beep. */
 export function sfxCard(): void {
-  beep(420 + Math.random() * 40, 0.07, "triangle", 0.045);
+  const flick = 1900 + Math.random() * 1200;
+  const paper = 780 + Math.random() * 260;
+  const rate = 0.9 + Math.random() * 0.22;
+  burst({ duration: 0.024, gain: 0.22, freq: flick, q: 0.9, filter: "bandpass", rate });
+  burst({ duration: 0.05, gain: 0.12, freq: paper, q: 0.55, filter: "bandpass", rate });
+  burst({ duration: 0.068, gain: 0.1, freq: 155 + Math.random() * 45, q: 0.55, filter: "lowpass" });
 }
 
 export function sfxTrick(): void {
-  beep(240, 0.14, "sine", 0.05, 180);
+  sfxCard();
+  burst({ when: 0.028, duration: 0.032, gain: 0.13, freq: 1500 + Math.random() * 400, q: 0.85, filter: "bandpass" });
+  burst({ when: 0.05, duration: 0.09, gain: 0.14, freq: 210, q: 0.45, filter: "lowpass" });
 }
 
 export function sfxMoon(): void {
-  beep(392, 0.16, "sine", 0.06);
-  setTimeout(() => beep(523, 0.2, "sine", 0.05), 90);
-  setTimeout(() => beep(659, 0.28, "sine", 0.05), 180);
+  beep(392, 0.16, "sine", 0.05);
+  setTimeout(() => beep(523, 0.2, "sine", 0.045), 90);
+  setTimeout(() => beep(659, 0.28, "sine", 0.04), 180);
 }
 
 export function sfxIllegal(): void {
-  beep(110, 0.12, "square", 0.03);
+  burst({ duration: 0.11, gain: 0.14, freq: 170, q: 0.7, filter: "lowpass" });
 }
 
 export function sfxPass(): void {
-  beep(520, 0.08, "triangle", 0.04, 640);
+  burst({ duration: 0.028, gain: 0.14, freq: 2200, q: 0.9, filter: "bandpass", rate: 1.05 });
+  burst({ when: 0.038, duration: 0.032, gain: 0.12, freq: 1750, q: 0.8, filter: "bandpass", rate: 0.95 });
+  burst({ when: 0.078, duration: 0.036, gain: 0.1, freq: 2400, q: 1, filter: "bandpass", rate: 1.08 });
 }
 
 export function resumeAudio(): void {

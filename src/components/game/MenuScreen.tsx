@@ -1,5 +1,6 @@
 import { BookOpen, Play, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { sfxCard, unlockAudio } from "@/game/audio";
 import { t } from "@/game/i18n";
 import type { Difficulty, VariantId } from "@/game/types";
 import { VARIANTS } from "@/game/variants";
@@ -45,7 +46,7 @@ export function MenuScreen({
             />
           </div>
           <h1 className="mt-2 font-display text-5xl leading-[0.95] tracking-tight sm:text-6xl">
-            Spardame
+            {copy.appName}
           </h1>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted">{copy.tagline}</p>
         </header>
@@ -132,7 +133,14 @@ export function MenuScreen({
             </Button>
             <Button
               variant="ghost"
-              onClick={() => onSettings({ muted: !settings.muted })}
+              onClick={() => {
+                const next = !settings.muted;
+                onSettings({ muted: next });
+                if (!next) {
+                  unlockAudio();
+                  sfxCard();
+                }
+              }}
               aria-pressed={settings.muted}
             >
               {settings.muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
