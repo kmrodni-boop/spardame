@@ -33,14 +33,13 @@ if [ ! -x "$GTK_PLUGIN" ]; then
   chmod +x "$GTK_PLUGIN"
 fi
 
-# linuxdeploy looks for plugins next to itself or on PATH.
-cp "$GTK_PLUGIN" "$CACHE/linuxdeploy-plugin-gtk.sh"
+# linuxdeploy looks for plugins on PATH.
 export PATH="$CACHE:$PATH"
 export LINUXDEPLOY_OUTPUT_VERSION="$VERSION"
 export OUTPUT="$DIST/Spardame-${VERSION}-x86_64.AppImage"
 export ARCH=x86_64
-export UPDATE_INFORMATION=""
 export LDAI_OUTPUT="$OUTPUT"
+export APPIMAGE_EXTRACT_AND_RUN="${APPIMAGE_EXTRACT_AND_RUN:-1}"
 
 cd "$CACHE"
 ./linuxdeploy-x86_64.AppImage \
