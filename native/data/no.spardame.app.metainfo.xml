@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>no.spardame.app</id>
+  <name>Spardame</name>
+  <summary>Hearts card game for Linux</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="no.spardame">
+    <name>Kai Marius Alm</name>
+  </developer>
+  <description>
+    <p>
+      Spardame (Norwegian Hearts) and Hearts (Windows rules). Four players,
+      three computer opponents. Avoid hearts and the queen of spades.
+    </p>
+    <p>
+      Two rule sets: Spardame to 500 (queen 100, ace of hearts 20, jack of
+      diamonds −100) and Windows Hearts to 100.
+    </p>
+  </description>
+  <launchable type="desktop-id">no.spardame.app.desktop</launchable>
+  <url type="homepage">https://github.com/kmrodni-boop/spardame</url>
+  <url type="bugtracker">https://github.com/kmrodni-boop/spardame/issues</url>
+  <content_rating type="oars-1.1" />
+  <categories>
+    <category>Game</category>
+    <category>CardGame</category>
+  </categories>
+  <keywords>
+    <keyword>hearts</keyword>
+    <keyword>cards</keyword>
+    <keyword>spardame</keyword>
+    <keyword>hjerter</keyword>
+  </keywords>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+  <releases>
+    <release version="1.1.0" date="2026-09-18">
+      <description>
+        <p>Native GTK packages: Flatpak, AppImage and .deb.</p>
+      </description>
+    </release>
+  </releases>
+</component>

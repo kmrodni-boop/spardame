@@ -20,3 +20,7 @@ screenshots/
 AGENTS.md
 AGENTS.project.md
 native/target/
+native/dist/
+native/flatpak/build-dir/
+native/.flatpak-builder/
+native/packaging/AppDir/

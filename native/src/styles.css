@@ -14,20 +14,20 @@ headerbar windowcontrols button {
 }
 
 .felt {
-  background-color: #12382c;
+  background-image: linear-gradient(180deg, #164a38 0%, #0e2c22 55%, #0a241c 100%);
 }
 
 .felt-well {
-  background-color: #0e2c22;
-  border-radius: 140px;
-  border: 1px solid alpha(#f3ead8, 0.14);
-  padding: 18px 28px;
-  min-width: 280px;
-  min-height: 190px;
+  background-image: linear-gradient(180deg, #0c2a22 0%, #081c16 100%);
+  border-radius: 160px;
+  border: 2px solid alpha(#f3ead8, 0.16);
+  padding: 22px 32px;
+  min-width: 300px;
+  min-height: 200px;
 }
 
 .app-title {
-  font-family: "Fraunces", "Georgia", "Noto Serif", serif;
+  font-family: "Noto Serif", "Liberation Serif", "Georgia", serif;
   font-size: 42px;
   font-weight: 600;
   color: #f3ead8;

@@ -77,14 +77,17 @@ pub fn sfx_card() {
             write_wav(&path);
         }
         let p = path.to_string_lossy().to_string();
-        let attempts: [(&str, &[&str]); 3] = [
-            ("pw-play", &[]),
-            ("paplay", &[]),
-            ("aplay", &["-q"]),
+        let uri = format!("file://{p}");
+        let attempts: [(&str, Vec<String>); 5] = [
+            ("pw-play", vec![p.clone()]),
+            ("paplay", vec![p.clone()]),
+            ("aplay", vec!["-q".into(), p.clone()]),
+            ("gst-play-1.0", vec!["--no-interactive".into(), uri.clone()]),
+            ("gst-launch-1.0", vec!["playbin".into(), format!("uri={uri}")]),
         ];
-        for (bin, extra) in attempts {
+        for (bin, args) in attempts {
             let mut cmd = Command::new(bin);
-            cmd.args(extra).arg(&p);
+            cmd.args(&args);
             cmd.stdout(Stdio::null()).stderr(Stdio::null());
             if cmd.status().map(|s| s.success()).unwrap_or(false) {
                 return;

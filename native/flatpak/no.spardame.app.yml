@@ -1,0 +1,35 @@
+id: no.spardame.app
+runtime: org.gnome.Platform
+runtime-version: "48"
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: spardame
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=dri
+  - --filesystem=xdg-run/pipewire-0:ro
+modules:
+  - name: spardame
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      env:
+        CARGO_HOME: /run/build/spardame/cargo
+      build-args:
+        - --share=network
+    build-commands:
+      - cargo build --release --manifest-path native/Cargo.toml --locked
+      - install -Dm755 native/target/release/spardame /app/bin/spardame
+      - install -Dm644 native/data/no.spardame.app.desktop /app/share/applications/no.spardame.app.desktop
+      - install -Dm644 native/data/no.spardame.app.metainfo.xml /app/share/metainfo/no.spardame.app.metainfo.xml
+      - install -Dm644 build/icons/64x64.png /app/share/icons/hicolor/64x64/apps/no.spardame.app.png
+      - install -Dm644 build/icons/128x128.png /app/share/icons/hicolor/128x128/apps/no.spardame.app.png
+      - install -Dm644 build/icons/256x256.png /app/share/icons/hicolor/256x256/apps/no.spardame.app.png
+      - install -Dm644 build/icons/512x512.png /app/share/icons/hicolor/512x512/apps/no.spardame.app.png
+    sources:
+      - type: dir
+        path: ../..
