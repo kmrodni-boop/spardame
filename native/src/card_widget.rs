@@ -42,6 +42,61 @@ fn rounded_path(x: f32, y: f32, w: f32, h: f32, radius: f32) -> gsk::Path {
     b.to_path()
 }
 
+/// Pango absolute size is device pixels × PANGO_SCALE.
+fn pango_px(px: f32) -> f64 {
+    f64::from(px.max(5.0)) * f64::from(gtk::pango::SCALE)
+}
+
+fn corner_font_px(size: CardSize, letter: &str) -> f32 {
+    let base = match size {
+        CardSize::Xs => 7.5,
+        CardSize::Sm => 10.0,
+        CardSize::Md => 12.5,
+        CardSize::Lg => 14.0,
+        CardSize::Xl => 16.5,
+    };
+    if letter.chars().count() > 1 {
+        base * 0.78
+    } else {
+        base
+    }
+}
+
+fn pip_font_px(size: CardSize, ace: bool) -> f32 {
+    if ace {
+        match size {
+            CardSize::Xs => 16.0,
+            CardSize::Sm => 22.0,
+            CardSize::Md => 30.0,
+            CardSize::Lg => 36.0,
+            CardSize::Xl => 46.0,
+        }
+    } else {
+        match size {
+            CardSize::Xs => 8.0,
+            CardSize::Sm => 11.0,
+            CardSize::Md => 13.5,
+            CardSize::Lg => 15.5,
+            CardSize::Xl => 18.0,
+        }
+    }
+}
+
+fn face_letter_px(size: CardSize, letter: &str) -> f32 {
+    let base = match size {
+        CardSize::Xs => 14.0,
+        CardSize::Sm => 20.0,
+        CardSize::Md => 26.0,
+        CardSize::Lg => 30.0,
+        CardSize::Xl => 40.0,
+    };
+    if letter.chars().count() > 1 {
+        base * 0.78
+    } else {
+        base
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum CardKind {
     Face(Card),
@@ -65,6 +120,10 @@ fn card_width(size: CardSize) -> i32 {
         CardSize::Lg => 82,
         CardSize::Xl => 110,
     }
+}
+
+fn card_height(size: CardSize) -> i32 {
+    (card_width(size) as f32 * 1.4) as i32
 }
 
 fn card_radius(size: CardSize) -> f32 {
@@ -136,7 +195,7 @@ mod imp {
     impl WidgetImpl for CardWidget {
         fn measure(&self, orientation: gtk::Orientation, _for_size: i32) -> (i32, i32, i32, i32) {
             let w = card_width(self.size.get());
-            let h = (w as f32 * 1.4) as i32;
+            let h = card_height(self.size.get());
             match orientation {
                 gtk::Orientation::Horizontal => (w, w, -1, -1),
                 _ => (h, h, -1, -1),
@@ -156,25 +215,29 @@ mod imp {
             }
             let radius = card_radius(self.size.get());
 
-            // shadow
             snapshot.push_rounded_clip(&rounded_rect(2.0, 3.0, w, h, radius));
-            snapshot.append_color(&rgba(0.0, 0.0, 0.0, 0.35), &graphene::Rect::new(2.0, 3.0, w, h));
+            snapshot.append_color(
+                &rgba(0.0, 0.0, 0.0, 0.28),
+                &graphene::Rect::new(2.0, 3.0, w, h),
+            );
             snapshot.pop();
 
+            snapshot.push_rounded_clip(&rounded_rect(0.0, 0.0, w, h, radius));
             match *self.kind.borrow() {
                 CardKind::Back => self.draw_back(snapshot, w, h, radius),
                 CardKind::Face(card) => self.draw_face(snapshot, w, h, radius, card),
             }
-
             if self.selected.get() {
-                snapshot.push_rounded_clip(&rounded_rect(0.0, 0.0, w, h, radius));
-                snapshot.append_color(&rgba(0.95, 0.92, 0.85, 0.55), &graphene::Rect::new(0.0, 0.0, w, h));
-                snapshot.pop();
+                snapshot.append_color(
+                    &rgba(0.95, 0.92, 0.85, 0.45),
+                    &graphene::Rect::new(0.0, 0.0, w, h),
+                );
             }
             if self.highlight.get() {
                 let path = rounded_path(0.0, 0.0, w, h, radius);
-                snapshot.append_stroke(&path, &gsk::Stroke::new(3.0), &rgba(0.95, 0.92, 0.85, 0.9));
+                snapshot.append_stroke(&path, &gsk::Stroke::new(2.5), &rgba(0.95, 0.92, 0.85, 0.95));
             }
+            snapshot.pop();
         }
     }
 
@@ -185,7 +248,6 @@ mod imp {
             } else {
                 (rgba(0.08, 0.21, 0.42, 1.0), rgba(0.12, 0.31, 0.59, 1.0))
             };
-            snapshot.push_rounded_clip(&rounded_rect(0.0, 0.0, w, h, radius));
             let bounds = graphene::Rect::new(0.0, 0.0, w, h);
             snapshot.append_linear_gradient(
                 &bounds,
@@ -195,7 +257,7 @@ mod imp {
             );
 
             let pad = w * 0.07;
-            let ir = card_radius(self.size.get()) * 0.7;
+            let ir = radius * 0.7;
             snapshot.push_rounded_clip(&rounded_rect(pad, pad, w - 2.0 * pad, h - 2.0 * pad, ir));
             let ib = graphene::Rect::new(pad, pad, w - 2.0 * pad, h - 2.0 * pad);
             snapshot.append_linear_gradient(
@@ -242,7 +304,7 @@ mod imp {
             let obj = self.obj();
             let layout = obj.create_pango_layout(Some(SPADE_GLYPH));
             let mut desc = gtk::pango::FontDescription::from_string("Sans Bold");
-            desc.set_size((h * 0.28 * gtk::pango::SCALE as f32) as i32);
+            desc.set_absolute_size(pango_px(h * 0.22));
             layout.set_font_description(Some(&desc));
             let (lw, lh) = layout.pixel_size();
             snapshot.save();
@@ -253,22 +315,19 @@ mod imp {
             snapshot.append_layout(&layout, &rgba(0.95, 0.92, 0.85, 0.92));
             snapshot.restore();
             snapshot.pop();
-            snapshot.pop();
         }
 
         fn draw_face(&self, snapshot: &gtk::Snapshot, w: f32, h: f32, radius: f32, card: Card) {
             let cream = rgba(1.0, 0.99, 0.97, 1.0);
-            snapshot.push_rounded_clip(&rounded_rect(0.0, 0.0, w, h, radius));
             snapshot.append_color(&cream, &graphene::Rect::new(0.0, 0.0, w, h));
 
             let edge = if is_red(card.suit()) {
-                rgba(0.70, 0.14, 0.17, 0.25)
+                rgba(0.70, 0.14, 0.17, 0.28)
             } else {
                 rgba(0.85, 0.80, 0.71, 1.0)
             };
             let path = rounded_path(0.0, 0.0, w, h, radius);
             snapshot.append_stroke(&path, &gsk::Stroke::new(1.0), &edge);
-            snapshot.pop();
 
             let suit = card.suit();
             let letter = self.face_letter.borrow().clone();
@@ -285,100 +344,136 @@ mod imp {
             let is_face = card.rank() >= 11;
             let is_ace = card.rank() == 14;
             if is_face {
-                let pad_x = w * 0.16;
-                let pad_y = h * 0.14;
-                snapshot.push_rounded_clip(&rounded_rect(pad_x, pad_y, w - 2.0 * pad_x, h - 2.0 * pad_y, radius * 0.55));
+                let pad_x = w * 0.18;
+                let pad_y = h * 0.16;
+                snapshot.push_rounded_clip(&rounded_rect(
+                    pad_x,
+                    pad_y,
+                    w - 2.0 * pad_x,
+                    h - 2.0 * pad_y,
+                    radius * 0.55,
+                ));
                 let ib = graphene::Rect::new(pad_x, pad_y, w - 2.0 * pad_x, h - 2.0 * pad_y);
                 snapshot.append_linear_gradient(
                     &ib,
                     &graphene::Point::new(pad_x, pad_y),
                     &graphene::Point::new(pad_x, h - pad_y),
-                    &[gsk::ColorStop::new(0.0, cream), gsk::ColorStop::new(1.0, rgba(0.95, 0.91, 0.82, 1.0))],
+                    &[
+                        gsk::ColorStop::new(0.0, cream),
+                        gsk::ColorStop::new(1.0, rgba(0.95, 0.91, 0.82, 1.0)),
+                    ],
                 );
                 let ipath = rounded_path(pad_x, pad_y, w - 2.0 * pad_x, h - 2.0 * pad_y, radius * 0.55);
                 snapshot.append_stroke(&ipath, &gsk::Stroke::new(1.0), &rgba(0.85, 0.80, 0.71, 0.9));
                 snapshot.pop();
 
                 let layout = obj.create_pango_layout(Some(&letter));
-                let mut desc = gtk::pango::FontDescription::from_string("Serif Bold");
-                desc.set_size((h * 0.28 * gtk::pango::SCALE as f32) as i32);
+                let mut desc = gtk::pango::FontDescription::from_string("Serif");
+                desc.set_weight(gtk::pango::Weight::Bold);
+                desc.set_absolute_size(pango_px(face_letter_px(self.size.get(), &letter)));
                 layout.set_font_description(Some(&desc));
                 let (lw, lh) = layout.pixel_size();
                 snapshot.save();
-                snapshot.translate(&graphene::Point::new(w / 2.0 - lw as f32 / 2.0, h * 0.30));
+                snapshot.translate(&graphene::Point::new(
+                    w / 2.0 - lw as f32 / 2.0,
+                    h * 0.34,
+                ));
                 snapshot.append_layout(&layout, &ink);
                 snapshot.restore();
 
                 let layout = obj.create_pango_layout(Some(suit_glyph(suit)));
                 let mut desc = gtk::pango::FontDescription::from_string("Sans");
-                desc.set_size((h * 0.13 * gtk::pango::SCALE as f32) as i32);
+                desc.set_absolute_size(pango_px(face_letter_px(self.size.get(), "A") * 0.42));
                 layout.set_font_description(Some(&desc));
                 let (lw, _) = layout.pixel_size();
                 snapshot.save();
-                snapshot.translate(&graphene::Point::new(w / 2.0 - lw as f32 / 2.0, h * 0.62));
+                snapshot.translate(&graphene::Point::new(w / 2.0 - lw as f32 / 2.0, h * 0.58));
                 snapshot.append_layout(&layout, &ink);
                 snapshot.restore();
+                let _ = lh;
             } else {
                 let pips = pip_positions(is_ace, card.rank());
                 for &(px, py, flip) in pips.iter() {
-                    self.draw_pip(&obj, snapshot, suit, w, h, px, py, flip, &ink);
+                    self.draw_pip(&obj, snapshot, suit, w, h, px, py, flip, is_ace, &ink);
                 }
             }
         }
 
-        fn draw_corner(&self, obj: &super::CardWidget, snapshot: &gtk::Snapshot, letter: &str, suit: u8, w: f32, h: f32, top_left: bool, ink: &gtk::gdk::RGBA) {
-            let scale = match self.size.get() {
-                CardSize::Xs => 0.32,
-                CardSize::Sm => 0.38,
-                CardSize::Md => 0.42,
-                CardSize::Lg => 0.45,
-                CardSize::Xl => 0.60,
-            };
+        fn draw_corner(
+            &self,
+            obj: &super::CardWidget,
+            snapshot: &gtk::Snapshot,
+            letter: &str,
+            suit: u8,
+            w: f32,
+            h: f32,
+            top_left: bool,
+            ink: &gtk::gdk::RGBA,
+        ) {
+            let px = corner_font_px(self.size.get(), letter);
             let layout = obj.create_pango_layout(Some(letter));
-            let mut desc = gtk::pango::FontDescription::from_string("Serif Bold");
-            desc.set_size((h * scale * gtk::pango::SCALE as f32) as i32);
+            let mut desc = gtk::pango::FontDescription::from_string("Serif");
+            desc.set_weight(gtk::pango::Weight::Bold);
+            desc.set_absolute_size(pango_px(px));
             layout.set_font_description(Some(&desc));
             let (lw, lh) = layout.pixel_size();
+
+            let sl = obj.create_pango_layout(Some(suit_glyph(suit)));
+            let mut sd = gtk::pango::FontDescription::from_string("Sans");
+            sd.set_absolute_size(pango_px(px * 0.82));
+            sl.set_font_description(Some(&sd));
+            let (sw, _sh) = sl.pixel_size();
+
             snapshot.save();
-            let x = if top_left { w * 0.08 } else { w - w * 0.08 - lw as f32 };
-            let y = if top_left { h * 0.06 } else { h - h * 0.06 - lh as f32 };
+            if !top_left {
+                snapshot.translate(&graphene::Point::new(w, h));
+                snapshot.rotate(180.0);
+            }
+            let x = w * 0.07;
+            let y = h * 0.045;
+            snapshot.save();
             snapshot.translate(&graphene::Point::new(x, y));
             snapshot.append_layout(&layout, ink);
             snapshot.restore();
 
-            let layout = obj.create_pango_layout(Some(suit_glyph(suit)));
-            let mut desc = gtk::pango::FontDescription::from_string("Sans");
-            desc.set_size((h * scale * 0.9 * gtk::pango::SCALE as f32) as i32);
-            layout.set_font_description(Some(&desc));
-            let (sw, sh) = layout.pixel_size();
+            let gx = x + (lw as f32 - sw as f32) / 2.0;
+            let gy = y + lh as f32 - 1.0;
             snapshot.save();
-            let gx = if top_left { x + (lw as f32 - sw as f32) / 2.0 } else { w - w * 0.08 - sw as f32 - (lw as f32 - sw as f32) / 2.0 };
-            let gy = if top_left { y + lh as f32 } else { h - h * 0.06 - lh as f32 - sh as f32 };
             snapshot.translate(&graphene::Point::new(gx, gy));
-            snapshot.append_layout(&layout, ink);
+            snapshot.append_layout(&sl, ink);
+            snapshot.restore();
             snapshot.restore();
         }
 
-        fn draw_pip(&self, obj: &super::CardWidget, snapshot: &gtk::Snapshot, suit: u8, w: f32, h: f32, px: f32, py: f32, flip: bool, ink: &gtk::gdk::RGBA) {
-            let scale = match self.size.get() {
-                CardSize::Xs => 0.36,
-                CardSize::Sm => 0.42,
-                CardSize::Md => 0.50,
-                CardSize::Lg => 0.55,
-                CardSize::Xl => 0.85,
-            };
+        fn draw_pip(
+            &self,
+            obj: &super::CardWidget,
+            snapshot: &gtk::Snapshot,
+            suit: u8,
+            w: f32,
+            h: f32,
+            px: f32,
+            py: f32,
+            flip: bool,
+            ace: bool,
+            ink: &gtk::gdk::RGBA,
+        ) {
+            let size_px = pip_font_px(self.size.get(), ace);
             let layout = obj.create_pango_layout(Some(suit_glyph(suit)));
             let mut desc = gtk::pango::FontDescription::from_string("Sans");
-            desc.set_size((h * scale * gtk::pango::SCALE as f32) as i32);
+            desc.set_absolute_size(pango_px(size_px));
             layout.set_font_description(Some(&desc));
             let (pw, ph) = layout.pixel_size();
             snapshot.save();
             if flip {
-                snapshot.translate(&graphene::Point::new(w * px / 100.0 + pw as f32 / 2.0, h * py / 100.0 + ph as f32 / 2.0));
+                snapshot.translate(&graphene::Point::new(w * px / 100.0, h * py / 100.0));
                 snapshot.rotate(180.0);
                 snapshot.translate(&graphene::Point::new(-pw as f32 / 2.0, -ph as f32 / 2.0));
             } else {
-                snapshot.translate(&graphene::Point::new(w * px / 100.0 - pw as f32 / 2.0, h * py / 100.0 - ph as f32 / 2.0));
+                snapshot.translate(&graphene::Point::new(
+                    w * px / 100.0 - pw as f32 / 2.0,
+                    h * py / 100.0 - ph as f32 / 2.0,
+                ));
             }
             snapshot.append_layout(&layout, ink);
             snapshot.restore();
@@ -393,14 +488,17 @@ glib::wrapper! {
 }
 
 impl CardWidget {
+    pub fn pixel_size(size: CardSize) -> (i32, i32) {
+        (card_width(size), card_height(size))
+    }
+
     pub fn new_face(card: Card, face_letter: &str, size: CardSize) -> Self {
         let obj: CardWidget = glib::Object::new();
         obj.imp().kind.replace(CardKind::Face(card));
         obj.imp().size.set(size);
         obj.imp().face_letter.replace(face_letter.to_string());
         obj.imp().card_id.set(card.id);
-        let w = card_width(size);
-        let h = (w as f32 * 1.4) as i32;
+        let (w, h) = Self::pixel_size(size);
         obj.set_size_request(w, h);
         obj.set_tooltip_text(Some(&label_for(card)));
         obj.queue_draw();
@@ -412,8 +510,7 @@ impl CardWidget {
         obj.imp().kind.replace(CardKind::Back);
         obj.imp().size.set(size);
         obj.imp().tint_red.set(tint_red);
-        let w = card_width(size);
-        let h = (w as f32 * 1.4) as i32;
+        let (w, h) = Self::pixel_size(size);
         obj.set_size_request(w, h);
         obj.queue_draw();
         obj
@@ -465,12 +562,63 @@ fn pip_positions(is_ace: bool, rank: u8) -> Vec<(f32, f32, bool)> {
         2 => vec![(50.0, 22.0, false), (50.0, 78.0, true)],
         3 => vec![(50.0, 20.0, false), (50.0, 50.0, false), (50.0, 80.0, true)],
         4 => vec![(32.0, 22.0, false), (68.0, 22.0, false), (32.0, 78.0, true), (68.0, 78.0, true)],
-        5 => vec![(32.0, 22.0, false), (68.0, 22.0, false), (50.0, 50.0, false), (32.0, 78.0, true), (68.0, 78.0, true)],
-        6 => vec![(32.0, 22.0, false), (68.0, 22.0, false), (32.0, 50.0, false), (68.0, 50.0, false), (32.0, 78.0, true), (68.0, 78.0, true)],
-        7 => vec![(32.0, 20.0, false), (68.0, 20.0, false), (50.0, 36.0, false), (32.0, 50.0, false), (68.0, 50.0, false), (32.0, 80.0, true), (68.0, 80.0, true)],
-        8 => vec![(32.0, 18.0, false), (68.0, 18.0, false), (32.0, 40.0, false), (68.0, 40.0, false), (32.0, 60.0, true), (68.0, 60.0, true), (32.0, 82.0, true), (68.0, 82.0, true)],
-        9 => vec![(32.0, 18.0, false), (68.0, 18.0, false), (32.0, 38.0, false), (68.0, 38.0, false), (50.0, 50.0, false), (32.0, 62.0, true), (68.0, 62.0, true), (32.0, 82.0, true), (68.0, 82.0, true)],
-        10 => vec![(32.0, 16.0, false), (68.0, 16.0, false), (50.0, 28.0, false), (32.0, 38.0, false), (68.0, 38.0, false), (32.0, 62.0, true), (68.0, 62.0, true), (50.0, 72.0, true), (32.0, 84.0, true), (68.0, 84.0, true)],
+        5 => vec![
+            (32.0, 22.0, false),
+            (68.0, 22.0, false),
+            (50.0, 50.0, false),
+            (32.0, 78.0, true),
+            (68.0, 78.0, true),
+        ],
+        6 => vec![
+            (32.0, 22.0, false),
+            (68.0, 22.0, false),
+            (32.0, 50.0, false),
+            (68.0, 50.0, false),
+            (32.0, 78.0, true),
+            (68.0, 78.0, true),
+        ],
+        7 => vec![
+            (32.0, 20.0, false),
+            (68.0, 20.0, false),
+            (50.0, 36.0, false),
+            (32.0, 50.0, false),
+            (68.0, 50.0, false),
+            (32.0, 80.0, true),
+            (68.0, 80.0, true),
+        ],
+        8 => vec![
+            (32.0, 18.0, false),
+            (68.0, 18.0, false),
+            (32.0, 40.0, false),
+            (68.0, 40.0, false),
+            (32.0, 60.0, true),
+            (68.0, 60.0, true),
+            (32.0, 82.0, true),
+            (68.0, 82.0, true),
+        ],
+        9 => vec![
+            (32.0, 18.0, false),
+            (68.0, 18.0, false),
+            (32.0, 38.0, false),
+            (68.0, 38.0, false),
+            (50.0, 50.0, false),
+            (32.0, 62.0, true),
+            (68.0, 62.0, true),
+            (32.0, 82.0, true),
+            (68.0, 82.0, true),
+        ],
+        10 => vec![
+            (32.0, 16.0, false),
+            (68.0, 16.0, false),
+            (50.0, 28.0, false),
+            (32.0, 38.0, false),
+            (68.0, 38.0, false),
+            (32.0, 62.0, true),
+            (68.0, 62.0, true),
+            (50.0, 72.0, true),
+            (32.0, 84.0, true),
+            (68.0, 84.0, true),
+        ],
         _ => vec![],
     }
 }

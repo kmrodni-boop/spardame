@@ -112,7 +112,7 @@ export const STRINGS: Record<Locale, Strings> = {
     toLimit: (n) => `to ${n}`,
     variant: {
       spardame: {
-        name: "Hearts",
+        name: "Queen of Spades",
         short: "Standard",
         blurb:
           "Queen of spades 100, ace of hearts 20, other hearts 10, jack of diamonds −100. First to 500.",
@@ -172,7 +172,7 @@ export const STRINGS: Record<Locale, Strings> = {
     moon: (name) => `${name} shot the moon — all hearts and the queen of spades.`,
     scoreHint: (limit) => `First to ${limit} loses the game. Lowest total wins.`,
     rulesTitle: "Rules",
-    rulesSpardameTitle: "Hearts",
+    rulesSpardameTitle: "Queen of Spades",
     rulesSpardameBody:
       "Four players, 52 cards, 13 each. Score as few points as possible. When someone reaches 500 the game ends — lowest total wins.",
     rulesSpardamePoints: [

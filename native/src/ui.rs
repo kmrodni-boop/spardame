@@ -7,16 +7,18 @@ use crate::i18n::Copy;
 use gtk::glib::timeout_add_local_once;
 use gtk::prelude::*;
 use gtk::{
-    Align, Box as GtkBox, Button, CssProvider, Entry, Grid, Label, Orientation, Overlay,
-    PolicyType, ScrolledWindow, Stack, ToggleButton,
+    Align, Box as GtkBox, Button, CssProvider, Entry, Fixed, Grid, Label, Orientation, Overflow,
+    Overlay, PolicyType, ScrolledWindow, Stack, ToggleButton,
 };
 use libadwaita::prelude::*;
-use libadwaita::{Application, ApplicationWindow, HeaderBar};
+use libadwaita::{Application, ApplicationWindow, HeaderBar, ToolbarView};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::time::Duration;
 
 const CSS: &str = include_str!("styles.css");
+const FELT_WELL_W: i32 = 380;
+const FELT_WELL_H: i32 = 290;
 
 type Refresh = Rc<RefCell<Rc<dyn Fn()>>>;
 
@@ -818,16 +820,19 @@ fn update_table(app: &App, copy: &Copy, t: &TableUi, state: AppRef, ui: Rc<RefCe
     attach_seat(t, 1, &names[1], s, app, 0, 1);
     attach_seat(t, 3, &names[3], s, app, 2, 1);
 
-    let well = GtkBox::builder()
-        .orientation(Orientation::Vertical)
+    let well = Overlay::builder()
         .halign(Align::Center)
         .valign(Align::Center)
-        .hexpand(true)
-        .vexpand(true)
+        .hexpand(false)
+        .vexpand(false)
         .css_classes(["felt-well"])
-        .width_request(300)
-        .height_request(210)
         .build();
+    well.set_size_request(FELT_WELL_W, FELT_WELL_H);
+    well.set_overflow(Overflow::Hidden);
+
+    let stage = Fixed::new();
+    stage.set_size_request(FELT_WELL_W, FELT_WELL_H);
+    well.set_child(Some(&stage));
 
     if s.trick.is_empty() {
         let lead = suit_led(s);
@@ -837,33 +842,22 @@ fn update_table(app: &App, copy: &Copy, t: &TableUi, state: AppRef, ui: Rc<RefCe
             .css_classes(["status-label"])
             .justify(gtk::Justification::Center)
             .wrap(true)
-            .build();
-        well.append(&lab);
-    } else {
-        let trick_grid = Grid::builder()
-            .column_spacing(6)
-            .row_spacing(4)
             .halign(Align::Center)
             .valign(Align::Center)
-            .hexpand(true)
-            .vexpand(true)
             .build();
+        well.add_overlay(&lab);
+    } else {
+        let (cw, ch) = CardWidget::pixel_size(CardSize::Xl);
         let winner_now = current_winner_of_trick(&s.trick);
         for play in &s.trick {
             let winning = winner_now == Some(play.player) && s.trick.len() > 1;
-            let cw = CardWidget::new_face(play.card, copy.face_letter(play.card), CardSize::Xl);
+            let card = CardWidget::new_face(play.card, copy.face_letter(play.card), CardSize::Xl);
             if winning {
-                cw.set_highlight(true);
+                card.set_highlight(true);
             }
-            let (col, row) = match play.player {
-                0 => (1, 2),
-                1 => (0, 1),
-                2 => (1, 0),
-                _ => (2, 1),
-            };
-            trick_grid.attach(&cw, col, row, 1, 1);
+            let (x, y) = trick_slot(play.player, cw, ch);
+            stage.put(&card, x, y);
         }
-        well.append(&trick_grid);
     }
     t.seats_grid.attach(&well, 1, 1, 1, 1);
 
@@ -1086,6 +1080,21 @@ fn flash_text(copy: &Copy, f: &Flash) -> String {
     }
 }
 
+fn trick_slot(player: PlayerId, cw: i32, ch: i32) -> (f64, f64) {
+    let ww = f64::from(FELT_WELL_W);
+    let wh = f64::from(FELT_WELL_H);
+    let cw = f64::from(cw);
+    let ch = f64::from(ch);
+    let cx = (ww - cw) / 2.0;
+    let cy = (wh - ch) / 2.0;
+    match player {
+        0 => (cx, wh - ch - 10.0),
+        1 => (12.0, cy),
+        2 => (cx, 10.0),
+        _ => (ww - cw - 12.0, cy),
+    }
+}
+
 fn schedule_ai(state: AppRef, ui: Rc<RefCell<Ui>>) {
     let busy = ui.borrow().busy.clone();
     if busy.get() {
@@ -1179,7 +1188,7 @@ fn show_rules(state: AppRef, ui: Rc<RefCell<Ui>>) {
     let dialog = libadwaita::Dialog::builder()
         .title(copy.rules_title)
         .content_width(560)
-        .content_height(520)
+        .content_height(580)
         .build();
     let content = GtkBox::builder()
         .orientation(Orientation::Vertical)
@@ -1263,7 +1272,37 @@ fn show_rules(state: AppRef, ui: Rc<RefCell<Ui>>) {
         .hscrollbar_policy(PolicyType::Never)
         .build();
     scroller.set_child(Some(&content));
-    dialog.set_child(Some(&scroller));
+
+    let close_btn = Button::builder()
+        .label(copy.close)
+        .css_classes(["suggested-action", "pill"])
+        .halign(Align::Center)
+        .hexpand(true)
+        .margin_top(4)
+        .margin_bottom(16)
+        .margin_start(24)
+        .margin_end(24)
+        .build();
+    {
+        let d = dialog.clone();
+        close_btn.connect_clicked(move |_| {
+            d.close();
+        });
+    }
+
+    let outer = GtkBox::builder()
+        .orientation(Orientation::Vertical)
+        .build();
+    outer.append(&scroller);
+    outer.append(&close_btn);
+
+    let header = HeaderBar::builder()
+        .show_end_title_buttons(true)
+        .build();
+    let toolbar = ToolbarView::new();
+    toolbar.add_top_bar(&header);
+    toolbar.set_content(Some(&outer));
+    dialog.set_child(Some(&toolbar));
 
     let s = state.clone();
     let uc = ui.clone();

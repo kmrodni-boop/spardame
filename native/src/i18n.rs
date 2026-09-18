@@ -309,7 +309,7 @@ const EN: Copy = Copy {
     quit: "Quit",
     next_hand: "Next hand",
     rules_title: "Rules",
-    rules_spardame_title: "Hearts",
+    rules_spardame_title: "Queen of Spades",
     rules_spardame_body:
         "Four players, 52 cards, 13 each. Score as few points as possible. When someone reaches 500 the game ends — lowest total wins.",
     rules_spardame_points: [
@@ -367,7 +367,7 @@ const EN: Copy = Copy {
     face_queen: "Q",
     face_king: "K",
     face_ace: "A",
-    var_spardame_name: "Hearts",
+    var_spardame_name: "Queen of Spades",
     var_spardame_short: "Standard",
     var_spardame_blurb:
         "Queen of spades 100, ace of hearts 20, other hearts 10, jack of diamonds −100. First to 500.",
