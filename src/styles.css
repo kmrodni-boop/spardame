@@ -15,6 +15,10 @@
   --color-heart: #b4232c;
   --color-card: #fffdf8;
   --color-card-edge: #d8ccb6;
+  --color-back-red: #b01f2e;
+  --color-back-red-deep: #7c1520;
+  --color-back-blue: #1e4e96;
+  --color-back-blue-deep: #14356a;
   --font-sans: "Outfit", "Segoe UI", system-ui, sans-serif;
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
   --radius-sm: 8px;
@@ -142,6 +146,59 @@
       var(--color-felt-deep) 28%
     );
   box-shadow: 0 -1px 0 color-mix(in oklab, var(--color-cream) 14%, transparent);
+}
+
+.card-back {
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+}
+
+.card-back[data-tint="red"] {
+  --back: var(--color-back-red);
+  --back-deep: var(--color-back-red-deep);
+}
+
+.card-back[data-tint="blue"] {
+  --back: var(--color-back-blue);
+  --back-deep: var(--color-back-blue-deep);
+}
+
+.card-back-panel {
+  background-color: var(--back-deep);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--color-cream) 42%, transparent),
+    inset 0 0 0 3px var(--back);
+}
+
+.card-back-lattice {
+  position: absolute;
+  inset: 3px;
+  background-color: var(--back);
+  background-image:
+    linear-gradient(45deg, var(--back-deep) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--back-deep) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--back-deep) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--back-deep) 75%);
+  background-size: 0.38rem 0.38rem;
+  background-position: 0 0, 0 0.19rem, 0.19rem -0.19rem, -0.19rem 0;
+}
+
+.card-back-medal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  display: grid;
+  width: 44%;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid color-mix(in oklab, var(--color-cream) 72%, transparent);
+  border-radius: 50%;
+  background: var(--back-deep);
+  box-shadow:
+    0 0 0 2px var(--back),
+    0 0 0 3px color-mix(in oklab, var(--color-cream) 38%, transparent);
+  transform: translate(-50%, -50%);
 }
 
 .playing-card {

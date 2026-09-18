@@ -1,6 +1,8 @@
 import type { Locale } from "./i18n.ts";
 import type { Difficulty, GameState, VariantId } from "./types.ts";
 
+export type CardBackTint = "red" | "blue";
+
 const KEY = "spardame.v1";
 const SAVE_VERSION = 1;
 
@@ -11,6 +13,7 @@ export type Settings = {
   aiNames: [string, string, string];
   muted: boolean;
   locale: Locale;
+  cardBack: CardBackTint;
 };
 
 export type Stats = {
@@ -32,6 +35,7 @@ export const DEFAULT_SETTINGS: Settings = {
   aiNames: ["Kari", "Per", "Liv"],
   muted: false,
   locale: "en",
+  cardBack: "red",
 };
 
 export const DEFAULT_STATS: Stats = { gamesPlayed: 0, gamesWon: 0 };
@@ -52,6 +56,9 @@ export function loadSave(): SaveBlob {
     if (!raw) return defaults();
     const parsed = JSON.parse(raw) as Partial<SaveBlob>;
     const settings: Settings = { ...DEFAULT_SETTINGS, ...parsed.settings };
+    if (settings.cardBack !== "red" && settings.cardBack !== "blue") {
+      settings.cardBack = "red";
+    }
     if (parsed.settings?.locale == null && settings.playerName === "Du") {
       settings.playerName = "";
       settings.locale = "en";

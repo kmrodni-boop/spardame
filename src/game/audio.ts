@@ -25,7 +25,7 @@ export function unlockAudio(): void {
 
 function noiseBuffer(audio: AudioContext): AudioBuffer {
   if (noise && noise.sampleRate === audio.sampleRate) return noise;
-  const length = Math.floor(audio.sampleRate * 0.35);
+  const length = Math.floor(audio.sampleRate * 0.5);
   const buf = audio.createBuffer(1, length, audio.sampleRate);
   const data = buf.getChannelData(0);
   for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
@@ -56,13 +56,14 @@ function burst(opts: Burst): void {
   filter.Q.value = opts.q ?? 1;
   const g = audio.createGain();
   g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(Math.max(opts.gain, 0.0002), t + 0.0025);
+  g.gain.exponentialRampToValueAtTime(Math.max(opts.gain, 0.0002), t + 0.005);
+  g.gain.exponentialRampToValueAtTime(Math.max(opts.gain * 0.38, 0.0002), t + opts.duration * 0.42);
   g.gain.exponentialRampToValueAtTime(0.0001, t + opts.duration);
   src.connect(filter);
   filter.connect(g);
   g.connect(master);
   src.start(t);
-  src.stop(t + opts.duration + 0.04);
+  src.stop(t + opts.duration + 0.05);
   src.onended = () => {
     src.disconnect();
     filter.disconnect();
@@ -89,18 +90,19 @@ function beep(freq: number, dur: number, type: OscillatorType, gain = 0.07, slid
 
 /** Snap of a playing card hitting felt — noise layers, no pitched beep. */
 export function sfxCard(): void {
-  const flick = 1900 + Math.random() * 1200;
-  const paper = 780 + Math.random() * 260;
-  const rate = 0.9 + Math.random() * 0.22;
-  burst({ duration: 0.024, gain: 0.22, freq: flick, q: 0.9, filter: "bandpass", rate });
-  burst({ duration: 0.05, gain: 0.12, freq: paper, q: 0.55, filter: "bandpass", rate });
-  burst({ duration: 0.068, gain: 0.1, freq: 155 + Math.random() * 45, q: 0.55, filter: "lowpass" });
+  const flick = 1800 + Math.random() * 1100;
+  const paper = 720 + Math.random() * 240;
+  const rate = 0.88 + Math.random() * 0.2;
+  burst({ duration: 0.055, gain: 0.2, freq: flick, q: 0.85, filter: "bandpass", rate });
+  burst({ duration: 0.13, gain: 0.13, freq: paper, q: 0.5, filter: "bandpass", rate });
+  burst({ duration: 0.2, gain: 0.11, freq: 150 + Math.random() * 40, q: 0.5, filter: "lowpass" });
+  burst({ duration: 0.24, gain: 0.05, freq: 420 + Math.random() * 80, q: 0.4, filter: "lowpass" });
 }
 
 export function sfxTrick(): void {
   sfxCard();
-  burst({ when: 0.028, duration: 0.032, gain: 0.13, freq: 1500 + Math.random() * 400, q: 0.85, filter: "bandpass" });
-  burst({ when: 0.05, duration: 0.09, gain: 0.14, freq: 210, q: 0.45, filter: "lowpass" });
+  burst({ when: 0.05, duration: 0.05, gain: 0.12, freq: 1450 + Math.random() * 400, q: 0.8, filter: "bandpass" });
+  burst({ when: 0.09, duration: 0.14, gain: 0.13, freq: 200, q: 0.42, filter: "lowpass" });
 }
 
 export function sfxMoon(): void {

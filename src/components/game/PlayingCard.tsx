@@ -1,5 +1,6 @@
 import { cardLabel, rankCode } from "@/game/cards";
 import { t, type Locale } from "@/game/i18n";
+import { useGame } from "@/game/store";
 import type { Card } from "@/game/types";
 import { cn } from "@/lib/utils";
 import { SuitMark } from "./suits";
@@ -172,22 +173,17 @@ export function PlayingCard({
 }
 
 function CardBack({ size }: { size: Size }) {
+  const tint = useGame((s) => s.settings.cardBack);
   return (
     <div
-      className={cn(
-        "absolute inset-0 overflow-hidden border border-line bg-felt-deep",
-        RADIUS[size],
-      )}
+      className={cn("card-back absolute inset-0 overflow-hidden", RADIUS[size])}
+      data-tint={tint}
     >
-      <div
-        className={cn("absolute inset-[5%] border border-cream/25", INNER_RADIUS[size])}
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(135deg, color-mix(in oklab, var(--color-cream) 16%, transparent) 0 2px, transparent 2px 7px)",
-        }}
-      />
-      <div className="absolute inset-0 grid place-items-center">
-        <SuitMark suit="spades" className="w-[42%] text-cream/80" />
+      <div className={cn("card-back-panel absolute inset-[7%]", INNER_RADIUS[size])}>
+        <div className="card-back-lattice" />
+        <div className="card-back-medal" aria-hidden="true">
+          <SuitMark suit="spades" className="w-[52%] text-cream" />
+        </div>
       </div>
     </div>
   );

@@ -5,7 +5,8 @@ import { t } from "@/game/i18n";
 import type { Difficulty, VariantId } from "@/game/types";
 import { VARIANTS } from "@/game/variants";
 import { cn } from "@/lib/utils";
-import type { Settings, Stats } from "@/game/storage";
+import type { CardBackTint, Settings, Stats } from "@/game/storage";
+import { PlayingCard } from "./PlayingCard";
 import { LanguageToggle } from "./LanguageToggle";
 import { SuitMark } from "./suits";
 
@@ -52,7 +53,7 @@ export function MenuScreen({
         </header>
 
         <div className="mb-6 flex justify-center">
-          <HeroCard letter={queenLetter} />
+          <HeroCard letter={queenLetter} locale={settings.locale} />
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -116,6 +117,36 @@ export function MenuScreen({
           </div>
         </fieldset>
 
+        <fieldset className="mt-4">
+          <legend className="text-xs font-medium text-muted">{copy.cardBack}</legend>
+          <div className="mt-1 grid grid-cols-2 gap-1.5">
+            {(["red", "blue"] as CardBackTint[]).map((tint) => {
+              const active = settings.cardBack === tint;
+              return (
+                <button
+                  key={tint}
+                  type="button"
+                  onClick={() => onSettings({ cardBack: tint })}
+                  aria-pressed={active}
+                  className={cn(
+                    "flex h-10 items-center justify-center gap-2 rounded-[var(--radius-sm)] border text-sm",
+                    active ? "border-cream bg-cream text-ink" : "border-line text-cream hover:bg-felt-mid",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "size-3.5 rounded-full",
+                      tint === "red" ? "bg-back-red" : "bg-back-blue",
+                    )}
+                    aria-hidden="true"
+                  />
+                  {copy.cardBackTint[tint]}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
         <div className="mt-8 flex flex-col gap-2">
           <Button size="lg" onClick={() => onStart()} className="w-full" data-testid="new-game">
             <Play className="size-4" />
@@ -161,7 +192,7 @@ export function MenuScreen({
   );
 }
 
-function HeroCard({ letter }: { letter: string }) {
+function HeroCard({ letter, locale }: { letter: string; locale: Settings["locale"] }) {
   return (
     <div className="relative h-40 w-[7.2rem] rotate-[-8deg] rounded-[0.9rem] bg-card shadow-[0_18px_40px_rgba(0,0,0,0.45)]">
       <div className="absolute left-3 top-3 flex flex-col items-center text-ink">
@@ -175,14 +206,8 @@ function HeroCard({ letter }: { letter: string }) {
         <span className="font-display text-2xl leading-none">{letter}</span>
         <SuitMark suit="spades" className="w-5 text-ink" />
       </div>
-      <div className="absolute -right-10 top-8 h-36 w-[6.4rem] rotate-[14deg] rounded-[0.9rem] border border-line bg-felt-deep shadow-lg">
-        <div
-          className="absolute inset-2 rounded-[0.55rem] border border-cream/20"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(135deg, color-mix(in oklab, var(--color-cream) 16%, transparent) 0 2px, transparent 2px 7px)",
-          }}
-        />
+      <div className="absolute -right-10 top-8 rotate-[14deg] shadow-lg">
+        <PlayingCard faceDown size="lg" locale={locale} />
       </div>
     </div>
   );

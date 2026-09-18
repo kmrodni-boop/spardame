@@ -23,6 +23,8 @@ type Strings = {
   rules: string;
   soundOn: string;
   soundOff: string;
+  cardBack: string;
+  cardBackTint: { red: string; blue: string };
   toMenu: string;
   close: string;
   language: string;
@@ -54,7 +56,6 @@ type Strings = {
   playing: string;
   suit: Record<Suit, string>;
   suitCap: Record<Suit, string>;
-  cardBack: string;
   queenOfSpades: string;
   jackOfDiamonds: string;
   rank: { jack: string; queen: string; king: string; ace: string };
@@ -102,6 +103,8 @@ export const STRINGS: Record<Locale, Strings> = {
     rules: "Rules",
     soundOn: "Sound on",
     soundOff: "Sound off",
+    cardBack: "Card back",
+    cardBackTint: { red: "Red", blue: "Blue" },
     toMenu: "Back to menu",
     close: "Close",
     language: "Language",
@@ -150,7 +153,6 @@ export const STRINGS: Record<Locale, Strings> = {
     playing: "Playing",
     suit: { clubs: "clubs", diamonds: "diamonds", spades: "spades", hearts: "hearts" },
     suitCap: { clubs: "Clubs", diamonds: "Diamonds", spades: "Spades", hearts: "Hearts" },
-    cardBack: "Card back",
     queenOfSpades: "Queen of spades",
     jackOfDiamonds: "Jack of diamonds",
     rank: { jack: "jack", queen: "queen", king: "king", ace: "ace" },
@@ -211,6 +213,8 @@ export const STRINGS: Record<Locale, Strings> = {
     rules: "Regler",
     soundOn: "Lyd på",
     soundOff: "Lyd av",
+    cardBack: "Kortbakside",
+    cardBackTint: { red: "Rød", blue: "Blå" },
     toMenu: "Til meny",
     close: "Lukk",
     language: "Språk",
@@ -258,7 +262,6 @@ export const STRINGS: Record<Locale, Strings> = {
     playing: "Spill",
     suit: { clubs: "kløver", diamonds: "ruter", spades: "spar", hearts: "hjerter" },
     suitCap: { clubs: "Kløver", diamonds: "Ruter", spades: "Spar", hearts: "Hjerter" },
-    cardBack: "Kort bakside",
     queenOfSpades: "Spar dame",
     jackOfDiamonds: "Ruter knekt",
     rank: { jack: "knekt", queen: "dame", king: "konge", ace: "ess" },
