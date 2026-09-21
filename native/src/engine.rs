@@ -1,29 +1,33 @@
 use crate::cards::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum VariantId {
+    #[default]
     Spardame,
     Hjerter,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Difficulty {
     Easy,
+    #[default]
     Normal,
     Hard,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum PassDir {
     Left,
     Right,
     Across,
+    #[default]
     Hold,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Phase {
+    #[default]
     Passing,
     Playing,
     TrickEnd,
@@ -31,14 +35,16 @@ pub enum Phase {
     GameOver,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum CardBackTint {
+    #[default]
     Red,
     Blue,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Locale {
+    #[default]
     En,
     Nb,
 }
@@ -272,13 +278,14 @@ pub fn commit_pass(state: &GameState) -> Result<GameState, String> {
         next.turn = holder_of(&state.hands, CLUBS, 2);
         return Ok(next);
     }
-    if state.pass_selections.iter().any(|s| s.as_ref().map_or(true, |c| c.len() != v.pass_count)) {
+    if state.pass_selections.iter().any(|s| s.as_ref().is_none_or(|c| c.len() != v.pass_count)) {
         return Err("Alle spillere må velge kort før byttet".into());
     }
     let offset = pass_offset(state.pass_dir);
-    let mut next_hands: Vec<Vec<Card>> = state.hands.iter().map(|h| h.clone()).collect();
+    let mut next_hands: Vec<Vec<Card>> = state.hands.to_vec();
     let mut received: Vec<Vec<Card>> = vec![Vec::new(), Vec::new(), Vec::new(), Vec::new()];
     for p in 0..4 {
+        // Guaranteed Some with the right length by the check above.
         let giving = state.pass_selections[p].clone().unwrap();
         let ids: Vec<u8> = giving.iter().map(|c| c.id).collect();
         next_hands[p] = without_cards(&next_hands[p], &ids);
@@ -414,17 +421,12 @@ fn score_from_taken(taken: &[Vec<Card>], variant_id: VariantId) -> HandScore {
     let mut applied = raw;
     if let Some(m) = moon {
         let v = get_variant(variant_id);
+        // The jack-of-diamonds bonus is an independent modifier applied to
+        // whoever holds it, on top of the moon scoring — not overridden by
+        // it, even when a different player than the shooter holds the jack.
         for p in 0..4 {
-            if p == m {
-                let jack = if v.jack_diamonds != 0 && jack_holder == Some(m) {
-                    v.jack_diamonds
-                } else {
-                    0
-                };
-                applied[p] = jack;
-            } else {
-                applied[p] = v.moon_others;
-            }
+            let jack_bonus = if jack_holder == Some(p) { v.jack_diamonds } else { 0 };
+            applied[p] = if p == m { jack_bonus } else { v.moon_others + jack_bonus };
         }
     }
     HandScore { raw, applied, moon, jack_holder }
@@ -800,12 +802,31 @@ mod tests {
         let mut moon = hearts;
         moon.push(c("SQ"));
         moon.push(c("C3"));
-        let taken = vec![moon, vec![c("DJ")], vec![c("SA")], vec![c("CA")]];
+        let taken = vec![moon, vec![c("C4")], vec![c("SA")], vec![c("CA")]];
         assert!(has_shot_the_moon(&taken[0]));
         let hs = score_from_taken(&taken, VariantId::Spardame);
         assert_eq!(hs.moon, Some(0));
         assert_eq!(hs.applied[0], 0);
         assert_eq!(hs.applied[1], 100);
+        assert_eq!(hs.applied[2], 100);
+        assert_eq!(hs.applied[3], 100);
+    }
+
+    #[test]
+    fn spardame_moon_still_counts_jack_for_a_non_shooter() {
+        // A different player than the shooter can still hold the jack of
+        // diamonds (it's not required for the moon), and it must still
+        // count for them: 100 (moon_others) - 100 (jack) = 0, not 100.
+        let hearts: Vec<Card> = make_deck().into_iter().filter(|card| is_heart(*card)).collect();
+        let mut moon = hearts;
+        moon.push(c("SQ"));
+        moon.push(c("C3"));
+        let taken = vec![moon, vec![c("DJ")], vec![c("SA")], vec![c("CA")]];
+        let hs = score_from_taken(&taken, VariantId::Spardame);
+        assert_eq!(hs.moon, Some(0));
+        assert_eq!(hs.jack_holder, Some(1));
+        assert_eq!(hs.applied[0], 0);
+        assert_eq!(hs.applied[1], 0);
         assert_eq!(hs.applied[2], 100);
         assert_eq!(hs.applied[3], 100);
     }

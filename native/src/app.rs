@@ -33,6 +33,12 @@ pub struct App {
     rng: Rng,
 }
 
+impl Default for App {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl App {
     pub fn new() -> Self {
         let (settings, stats, game) = storage::load_save();
@@ -163,6 +169,8 @@ impl App {
             self.flash = Some(Flash::PickCards(v.pass_count));
             return;
         }
+        // toggle_card only ever pushes ids it already found in state.hands[0],
+        // and the hand can't change during Passing, so every id here is present.
         let cards: Vec<Card> = self
             .selected
             .iter()

@@ -108,8 +108,12 @@ fn activate(app: &Application) {
         .title("Spardame")
         .default_width(1180)
         .default_height(780)
-        .width_request(420)
-        .height_request(560)
+        // The table screen's felt well + three opponent seats can't usefully
+        // shrink much below this; GTK enforces its own real minimum from the
+        // content regardless, but these should reflect that honestly rather
+        // than promise a size (420x560) the layout can't actually render.
+        .width_request(960)
+        .height_request(600)
         .content(&ui.borrow().dialog_host)
         .build();
 
@@ -554,11 +558,12 @@ fn build_table(state: AppRef, refresh: Refresh) -> TableUi {
         .hexpand(true)
         .build();
 
+    // Not homogeneous: the felt well's fixed FELT_WELL_W/H would otherwise
+    // force every column/row to match it, making the side seat columns far
+    // wider than their own content needs and breaking layout at small sizes.
     let seats_grid = Grid::builder()
         .column_spacing(8)
         .row_spacing(8)
-        .column_homogeneous(true)
-        .row_homogeneous(true)
         .halign(Align::Fill)
         .valign(Align::Fill)
         .hexpand(true)
@@ -660,15 +665,15 @@ fn refresh_ui(state: AppRef, ui: Rc<RefCell<Ui>>) {
         && app
             .state
             .as_ref()
-            .map_or(false, |s| matches!(s.phase, Phase::HandEnd | Phase::GameOver));
+            .is_some_and(|s| matches!(s.phase, Phase::HandEnd | Phase::GameOver));
     let trick_end = app
         .state
         .as_ref()
-        .map_or(false, |s| s.phase == Phase::TrickEnd);
+        .is_some_and(|s| s.phase == Phase::TrickEnd);
     let needs_ai = app
         .state
         .as_ref()
-        .map_or(false, |s| s.phase == Phase::Playing && s.turn != 0);
+        .is_some_and(|s| s.phase == Phase::Playing && s.turn != 0);
     drop(app);
 
     if rules_open {
@@ -755,7 +760,7 @@ fn update_menu(app: &App, copy: &Copy, m: &MenuUi) {
     m.continue_btn.set_visible(
         app.state
             .as_ref()
-            .map_or(false, |s| s.phase != Phase::GameOver),
+            .is_some_and(|s| s.phase != Phase::GameOver),
     );
     m.rules_btn.set_label(copy.rules);
     m.sound_btn
@@ -789,7 +794,7 @@ fn update_table(app: &App, copy: &Copy, t: &TableUi, state: AppRef, ui: Rc<RefCe
     for p in 0..4 {
         let active = s.turn == p && s.phase == Phase::Playing;
         let chip = Label::builder()
-            .label(&format!("{}  {}", names[p], s.scores[p]))
+            .label(format!("{}  {}", names[p], s.scores[p]))
             .css_classes([
                 "score-chip",
                 if active {
@@ -918,7 +923,7 @@ fn update_table(app: &App, copy: &Copy, t: &TableUi, state: AppRef, ui: Rc<RefCe
                     let mut a = st.borrow_mut();
                     if a.state
                         .as_ref()
-                        .map_or(false, |s| s.phase == Phase::Passing)
+                        .is_some_and(|s| s.phase == Phase::Passing)
                     {
                         a.toggle_card(id);
                         false
@@ -979,7 +984,7 @@ fn attach_seat(t: &TableUi, player: PlayerId, name: &str, s: &GameState, app: &A
     }
     if count > 0 {
         let n = Label::builder()
-            .label(&count.to_string())
+            .label(count.to_string())
             .css_classes(["dim-label", "small"])
             .margin_start(6)
             .build();
@@ -995,7 +1000,7 @@ fn attach_seat(t: &TableUi, player: PlayerId, name: &str, s: &GameState, app: &A
             .map(|c| suit_glyph_str(c.suit()))
             .collect();
         let plab = Label::builder()
-            .label(&pstr.join(" "))
+            .label(pstr.join(" "))
             .css_classes(["dim-label", "small"])
             .build();
         col_box.append(&plab);
@@ -1104,7 +1109,7 @@ fn schedule_ai(state: AppRef, ui: Rc<RefCell<Ui>>) {
         .borrow()
         .state
         .as_ref()
-        .map_or(false, |s| s.phase == Phase::Playing && s.turn != 0);
+        .is_some_and(|s| s.phase == Phase::Playing && s.turn != 0);
     if !needs {
         return;
     }
@@ -1123,7 +1128,7 @@ fn schedule_ai(state: AppRef, ui: Rc<RefCell<Ui>>) {
             let mut a = state.borrow_mut();
             if a.state
                 .as_ref()
-                .map_or(false, |st| st.phase == Phase::Playing && st.turn != 0)
+                .is_some_and(|st| st.phase == Phase::Playing && st.turn != 0)
             {
                 a.play_ai()
             } else {
@@ -1146,7 +1151,7 @@ fn schedule_settle(state: AppRef, ui: Rc<RefCell<Ui>>) {
         .borrow()
         .state
         .as_ref()
-        .map_or(false, |s| s.phase == Phase::TrickEnd)
+        .is_some_and(|s| s.phase == Phase::TrickEnd)
     {
         return;
     }
@@ -1158,7 +1163,7 @@ fn schedule_settle(state: AppRef, ui: Rc<RefCell<Ui>>) {
             let mut a = state.borrow_mut();
             if a.state
                 .as_ref()
-                .map_or(false, |st| st.phase == Phase::TrickEnd)
+                .is_some_and(|st| st.phase == Phase::TrickEnd)
             {
                 a.settle_trick();
                 if !muted {
@@ -1217,7 +1222,7 @@ fn show_rules(state: AppRef, ui: Rc<RefCell<Ui>>) {
     for p in copy.rules_spardame_points.iter() {
         content.append(
             &Label::builder()
-                .label(&format!("• {}", p))
+                .label(format!("• {}", p))
                 .xalign(0.0)
                 .halign(Align::Start)
                 .build(),
@@ -1259,7 +1264,7 @@ fn show_rules(state: AppRef, ui: Rc<RefCell<Ui>>) {
     for p in copy.rules_play.iter() {
         content.append(
             &Label::builder()
-                .label(&format!("• {}", p))
+                .label(format!("• {}", p))
                 .wrap(true)
                 .xalign(0.0)
                 .halign(Align::Start)
@@ -1311,7 +1316,7 @@ fn show_rules(state: AppRef, ui: Rc<RefCell<Ui>>) {
         uc.borrow().dialog_open.set(false);
         refresh_ui(s.clone(), uc.clone());
     });
-    let _ = dialog.present(Some(&win));
+    dialog.present(Some(&win));
 }
 
 fn show_score(state: AppRef, ui: Rc<RefCell<Ui>>) {
@@ -1366,7 +1371,7 @@ fn show_score(state: AppRef, ui: Rc<RefCell<Ui>>) {
     if let Some(mn) = moon_name {
         content.append(
             &Label::builder()
-                .label(&copy.moon(&mn))
+                .label(copy.moon(&mn))
                 .wrap(true)
                 .css_classes(["dim-label", "small"])
                 .halign(Align::Start)
@@ -1445,7 +1450,7 @@ fn show_score(state: AppRef, ui: Rc<RefCell<Ui>>) {
     content.append(&grid);
     content.append(
         &Label::builder()
-            .label(&copy.score_hint(v.game_limit))
+            .label(copy.score_hint(v.game_limit))
             .css_classes(["dim-label", "small"])
             .halign(Align::Start)
             .wrap(true)
@@ -1504,7 +1509,7 @@ fn show_score(state: AppRef, ui: Rc<RefCell<Ui>>) {
         uic.borrow().dialog_open.set(false);
         refresh_ui(stc.clone(), uic.clone());
     });
-    let _ = dialog.present(Some(&win));
+    dialog.present(Some(&win));
 }
 
 fn clear_container(container: &gtk::Box) {
