@@ -14,11 +14,17 @@ headerbar windowcontrols button {
 }
 
 .felt {
-  background-image: linear-gradient(180deg, #164a38 0%, #0e2c22 55%, #0a241c 100%);
+  background-image:
+    repeating-linear-gradient(45deg, alpha(#f3ead8, 0.025) 0px, alpha(#f3ead8, 0.025) 1px, transparent 1px, transparent 7px),
+    repeating-linear-gradient(-45deg, alpha(#000000, 0.05) 0px, alpha(#000000, 0.05) 1px, transparent 1px, transparent 7px),
+    linear-gradient(180deg, #164a38 0%, #0e2c22 55%, #0a241c 100%);
 }
 
 .felt-well {
-  background-image: linear-gradient(180deg, #0c2a22 0%, #081c16 100%);
+  background-image:
+    repeating-linear-gradient(45deg, alpha(#f3ead8, 0.02) 0px, alpha(#f3ead8, 0.02) 1px, transparent 1px, transparent 7px),
+    repeating-linear-gradient(-45deg, alpha(#000000, 0.06) 0px, alpha(#000000, 0.06) 1px, transparent 1px, transparent 7px),
+    linear-gradient(180deg, #0c2a22 0%, #081c16 100%);
   border-radius: 160px;
   border: 2px solid alpha(#f3ead8, 0.16);
   padding: 0;
@@ -51,6 +57,10 @@ headerbar windowcontrols button {
   color: #8d9d94;
 }
 
+button, togglebutton {
+  transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease;
+}
+
 button.pill {
   border-radius: 999px;
   padding: 8px 14px;
@@ -65,10 +75,26 @@ button.suggested-action {
   color: #14110e;
 }
 
+button:hover, togglebutton:hover {
+  background-color: alpha(#f3ead8, 0.10);
+}
+
+button.suggested-action:hover {
+  background-color: alpha(#f3ead8, 0.85);
+}
+
+button:active, togglebutton:active {
+  opacity: 0.8;
+}
+
 togglebutton:checked {
   background-color: #f3ead8;
   color: #14110e;
   font-weight: 600;
+}
+
+togglebutton:checked:hover {
+  background-color: alpha(#f3ead8, 0.9);
 }
 
 entry.name-entry {
@@ -94,10 +120,19 @@ entry.name-entry {
   border-radius: 16px 16px 0 0;
 }
 
+.card {
+  transition: margin-top 120ms ease, opacity 120ms ease;
+}
+
+.card:hover {
+  margin-top: -6px;
+}
+
 .score-chip {
   border-radius: 999px;
   padding: 4px 12px;
   font-size: 12px;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
 .score-chip-active {
@@ -126,6 +161,15 @@ entry.name-entry {
 
 .seat-name-idle {
   background-color: alpha(#f3ead8, 0.10);
+}
+
+.moon-banner {
+  background-color: alpha(#f3ead8, 0.14);
+  color: #f3ead8;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 10px 16px;
+  border-radius: 12px;
 }
 
 .modal-title {

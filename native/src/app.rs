@@ -28,6 +28,9 @@ pub struct App {
     pub state: Option<GameState>,
     pub selected: Vec<u8>,
     pub flash: Option<Flash>,
+    /// Bumped every time `flash` is freshly set (not on clear), so the UI
+    /// layer can tell a brand-new flash from a re-render of the same one.
+    pub flash_seq: u64,
     pub rules_open: bool,
     pub score_open: bool,
     rng: Rng,
@@ -50,6 +53,7 @@ impl App {
             state: game,
             selected: Vec::new(),
             flash: None,
+            flash_seq: 0,
             rules_open: false,
             score_open: false,
             rng: Rng::new(),
@@ -152,7 +156,7 @@ impl App {
             None => return,
         };
         if !v.can_pass_queen && is_queen_of_spades(card) {
-            self.flash = Some(Flash::CannotPassQueen);
+            self.set_flash(Flash::CannotPassQueen);
             return;
         }
         self.selected.push(id);
@@ -166,7 +170,7 @@ impl App {
         }
         let v = get_variant(state.variant);
         if self.selected.len() != v.pass_count {
-            self.flash = Some(Flash::PickCards(v.pass_count));
+            self.set_flash(Flash::PickCards(v.pass_count));
             return;
         }
         // toggle_card only ever pushes ids it already found in state.hands[0],
@@ -183,11 +187,14 @@ impl App {
                 let from = pass_from_name(&next, &self.settings);
                 self.state = Some(next);
                 self.selected.clear();
-                self.flash = from.map(|f| Flash::GotCards(v.pass_count, f));
+                match from {
+                    Some(f) => self.set_flash(Flash::GotCards(v.pass_count, f)),
+                    None => self.flash = None,
+                }
                 self.persist();
             }
             Err(_) => {
-                self.flash = Some(Flash::PassFailed);
+                self.set_flash(Flash::PassFailed);
             }
         }
     }
@@ -206,7 +213,7 @@ impl App {
                 true
             }
             Err(_) => {
-                self.flash = Some(Flash::Illegal);
+                self.set_flash(Flash::Illegal);
                 false
             }
         }
@@ -271,6 +278,11 @@ impl App {
 
     pub fn clear_flash(&mut self) {
         self.flash = None;
+    }
+
+    fn set_flash(&mut self, f: Flash) {
+        self.flash = Some(f);
+        self.flash_seq += 1;
     }
 
     pub fn think_delay(&self, legal_count: usize) -> u32 {

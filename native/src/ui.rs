@@ -11,7 +11,10 @@ use gtk::{
     Overlay, PolicyType, ScrolledWindow, Stack, ToggleButton,
 };
 use libadwaita::prelude::*;
-use libadwaita::{Application, ApplicationWindow, HeaderBar, ToolbarView};
+use libadwaita::{
+    Application, ApplicationWindow, CallbackAnimationTarget, HeaderBar, Toast, ToastOverlay,
+    ToolbarView,
+};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::time::Duration;
@@ -50,7 +53,9 @@ struct MenuUi {
 }
 
 struct TableUi {
-    root: gtk::Box,
+    toasts: ToastOverlay,
+    last_flash_seq: Cell<u64>,
+    last_trick_len: Cell<usize>,
     seats_grid: Grid,
     hand_box: GtkBox,
     status_line: Label,
@@ -132,7 +137,7 @@ fn build_ui(state: AppRef, refresh: Refresh) -> Ui {
     let menu = build_menu(state.clone(), refresh.clone());
     let table = build_table(state, refresh);
     stack.add_named(&menu.root, Some("menu"));
-    stack.add_named(&table.root, Some("table"));
+    stack.add_named(&table.toasts, Some("table"));
 
     let dialog_host = GtkBox::builder()
         .orientation(Orientation::Vertical)
@@ -620,8 +625,13 @@ fn build_table(state: AppRef, refresh: Refresh) -> TableUi {
     hand_scroll.set_child(Some(&hand_box));
     root.append(&hand_scroll);
 
+    let toasts = ToastOverlay::new();
+    toasts.set_child(Some(&root));
+
     TableUi {
-        root,
+        toasts,
+        last_flash_seq: Cell::new(0),
+        last_trick_len: Cell::new(0),
         seats_grid,
         hand_box,
         status_line,
@@ -854,7 +864,15 @@ fn update_table(app: &App, copy: &Copy, t: &TableUi, state: AppRef, ui: Rc<RefCe
     } else {
         let (cw, ch) = CardWidget::pixel_size(CardSize::Xl);
         let winner_now = current_winner_of_trick(&s.trick);
-        for play in &s.trick {
+        let collecting = s.phase == Phase::TrickEnd && s.trick.len() > 1;
+        let collect_to = if collecting { winner_now.map(|w| trick_collection_target(w, cw, ch)) } else { None };
+        // Only the newest card (trick grew since the last render) gets an
+        // entrance fade-in; the whole stage is rebuilt every refresh, so
+        // animating every card here would replay the entrance of cards
+        // already on the table.
+        let is_new_card = s.trick.len() != t.last_trick_len.get();
+        let newest_idx = s.trick.len().saturating_sub(1);
+        for (i, play) in s.trick.iter().enumerate() {
             let winning = winner_now == Some(play.player) && s.trick.len() > 1;
             let card = CardWidget::new_face(play.card, copy.face_letter(play.card), CardSize::Xl);
             if winning {
@@ -862,15 +880,23 @@ fn update_table(app: &App, copy: &Copy, t: &TableUi, state: AppRef, ui: Rc<RefCe
             }
             let (x, y) = trick_slot(play.player, cw, ch);
             stage.put(&card, x, y);
+            if let Some((tx, ty)) = collect_to {
+                animate_trick_collect(&stage, &card, x, y, tx, ty);
+            } else if is_new_card && i == newest_idx {
+                animate_card_entrance(&card);
+            }
         }
     }
+    t.last_trick_len.set(s.trick.len());
     t.seats_grid.attach(&well, 1, 1, 1, 1);
 
-    let status = match &app.flash {
-        Some(f) => flash_text(copy, f),
-        None => status_text(s, &names, copy),
-    };
-    t.status_line.set_label(&status);
+    t.status_line.set_label(&status_text(s, &names, copy));
+    if let Some(f) = &app.flash {
+        if app.flash_seq != t.last_flash_seq.get() {
+            t.last_flash_seq.set(app.flash_seq);
+            t.toasts.add_toast(Toast::builder().title(flash_text(copy, f)).timeout(2).build());
+        }
+    }
 
     let passing = s.phase == Phase::Passing;
     t.confirm_pass.set_visible(passing);
@@ -1098,6 +1124,60 @@ fn trick_slot(player: PlayerId, cw: i32, ch: i32) -> (f64, f64) {
         2 => (cx, 10.0),
         _ => (ww - cw - 12.0, cy),
     }
+}
+
+fn trick_collection_target(winner: PlayerId, cw: i32, ch: i32) -> (f64, f64) {
+    let ww = f64::from(FELT_WELL_W);
+    let wh = f64::from(FELT_WELL_H);
+    let cw = f64::from(cw);
+    let ch = f64::from(ch);
+    match winner {
+        0 => (ww / 2.0 - cw / 2.0, wh + ch),
+        1 => (-cw * 1.3, wh / 2.0 - ch / 2.0),
+        2 => (ww / 2.0 - cw / 2.0, -ch * 1.3),
+        _ => (ww + cw * 0.3, wh / 2.0 - ch / 2.0),
+    }
+}
+
+// Sweeps a trick card from its lay-down slot toward the winner's edge of the
+// felt well, fading it out. Runs during the existing 900ms TrickEnd pause
+// (see the timeout in schedule_ai's sibling below) — the stage and this card
+// live only until that pause ends and the next refresh rebuilds everything,
+// so the animation never has to outlive its widgets.
+fn animate_trick_collect(stage: &Fixed, card: &CardWidget, x0: f64, y0: f64, x1: f64, y1: f64) {
+    let stage = stage.clone();
+    let card_cb = card.clone();
+    let target = CallbackAnimationTarget::new(move |value| {
+        let x = x0 + (x1 - x0) * value;
+        let y = y0 + (y1 - y0) * value;
+        stage.move_(&card_cb, x, y);
+        card_cb.set_opacity((1.0 - value).max(0.0));
+    });
+    let animation = libadwaita::TimedAnimation::new(card, 0.0, 1.0, 500, target);
+    animation.play();
+}
+
+// Simple fade-in for a freshly-played card landing on the table.
+fn animate_card_entrance(card: &CardWidget) {
+    card.set_opacity(0.0);
+    let card_cb = card.clone();
+    let target = CallbackAnimationTarget::new(move |value| {
+        card_cb.set_opacity(value);
+    });
+    let animation = libadwaita::TimedAnimation::new(card, 0.0, 1.0, 220, target);
+    animation.play();
+}
+
+// A little spring-in bounce for the "shot the moon" banner on the score dialog.
+fn animate_moon_banner(label: &Label) {
+    label.set_opacity(0.0);
+    let label_cb = label.clone();
+    let target = CallbackAnimationTarget::new(move |value| {
+        label_cb.set_opacity(value.clamp(0.0, 1.0));
+    });
+    let params = libadwaita::SpringParams::new(0.65, 1.0, 140.0);
+    let animation = libadwaita::SpringAnimation::new(label, 0.0, 1.0, params, target);
+    animation.play();
 }
 
 fn schedule_ai(state: AppRef, ui: Rc<RefCell<Ui>>) {
@@ -1369,14 +1449,15 @@ fn show_score(state: AppRef, ui: Rc<RefCell<Ui>>) {
         .build();
 
     if let Some(mn) = moon_name {
-        content.append(
-            &Label::builder()
-                .label(copy.moon(&mn))
-                .wrap(true)
-                .css_classes(["dim-label", "small"])
-                .halign(Align::Start)
-                .build(),
-        );
+        let moon_label = Label::builder()
+            .label(copy.moon(&mn))
+            .wrap(true)
+            .justify(gtk::Justification::Center)
+            .css_classes(["moon-banner"])
+            .halign(Align::Center)
+            .build();
+        content.append(&moon_label);
+        animate_moon_banner(&moon_label);
     }
 
     let grid = Grid::builder().column_spacing(12).row_spacing(2).build();
@@ -1417,8 +1498,14 @@ fn show_score(state: AppRef, ui: Rc<RefCell<Ui>>) {
     for p in 0..4 {
         let lowest = over && s.tied.contains(&p);
         let cls = if lowest { "score-table-row-winner" } else { "" };
+        let held_jack = v.jack_diamonds != 0 && hs.as_ref().and_then(|h| h.jack_holder) == Some(p);
+        let name_txt = if held_jack {
+            format!("{} {}J", names[p], suit_glyph_str(DIAMONDS))
+        } else {
+            names[p].clone()
+        };
         let nm = Label::builder()
-            .label(&names[p])
+            .label(&name_txt)
             .halign(Align::Start)
             .css_classes(["score-table-row", cls])
             .build();

@@ -380,6 +380,8 @@ mod imp {
                 snapshot.append_layout(&layout, &ink);
                 snapshot.restore();
                 let _ = lh;
+
+                self.draw_royal_mark(snapshot, card.rank(), w, h, &ink);
             } else {
                 let pips = pip_positions(is_ace, card.rank());
                 for &(px, py, flip) in pips.iter() {
@@ -432,6 +434,70 @@ mod imp {
             snapshot.append_layout(&sl, ink);
             snapshot.restore();
             snapshot.restore();
+        }
+
+        // A small line-art motif under the letter+suit on face cards, drawn
+        // with the same primitives as the back's lattice/medal (paths and
+        // circles, no assets). Ace is excluded — it already renders as a
+        // lettered face card, not a mark-bearing "royal" one.
+        fn draw_royal_mark(&self, snapshot: &gtk::Snapshot, rank: u8, w: f32, h: f32, ink: &gtk::gdk::RGBA) {
+            let cx = w / 2.0;
+            let cy = h * 0.745;
+            match rank {
+                13 => self.draw_king_mark(snapshot, cx, cy, w, ink),
+                12 => self.draw_queen_mark(snapshot, cx, cy, w, ink),
+                11 => self.draw_jack_mark(snapshot, cx, cy, w, ink),
+                _ => {}
+            }
+        }
+
+        fn draw_king_mark(&self, snapshot: &gtk::Snapshot, cx: f32, cy: f32, w: f32, ink: &gtk::gdk::RGBA) {
+            let s = w * 0.15;
+            let base_y = cy + s * 0.5;
+            let low_y = cy;
+            let high_y = cy - s * 0.75;
+            let b = gsk::PathBuilder::new();
+            b.move_to(cx - s, base_y);
+            b.line_to(cx - s, low_y);
+            b.line_to(cx - s * 0.5, high_y);
+            b.line_to(cx - s * 0.22, low_y);
+            b.line_to(cx, high_y - s * 0.2);
+            b.line_to(cx + s * 0.22, low_y);
+            b.line_to(cx + s * 0.5, high_y);
+            b.line_to(cx + s, low_y);
+            b.line_to(cx + s, base_y);
+            b.close();
+            let fill = rgba(ink.red(), ink.green(), ink.blue(), 0.55);
+            snapshot.append_fill(&b.to_path(), gsk::FillRule::Winding, &fill);
+
+            let jb = gsk::PathBuilder::new();
+            jb.add_circle(&graphene::Point::new(cx, high_y - s * 0.15), s * 0.1);
+            snapshot.append_fill(&jb.to_path(), gsk::FillRule::Winding, ink);
+        }
+
+        fn draw_queen_mark(&self, snapshot: &gtk::Snapshot, cx: f32, cy: f32, w: f32, ink: &gtk::gdk::RGBA) {
+            let s = w * 0.10;
+            let fill = rgba(ink.red(), ink.green(), ink.blue(), 0.5);
+            let b = gsk::PathBuilder::new();
+            b.add_circle(&graphene::Point::new(cx - s * 1.3, cy + s * 0.3), s * 0.75);
+            b.add_circle(&graphene::Point::new(cx, cy - s * 0.35), s * 0.85);
+            b.add_circle(&graphene::Point::new(cx + s * 1.3, cy + s * 0.3), s * 0.75);
+            snapshot.append_fill(&b.to_path(), gsk::FillRule::Winding, &fill);
+
+            let jb = gsk::PathBuilder::new();
+            jb.add_circle(&graphene::Point::new(cx, cy - s * 0.35), s * 0.22);
+            snapshot.append_fill(&jb.to_path(), gsk::FillRule::Winding, ink);
+        }
+
+        fn draw_jack_mark(&self, snapshot: &gtk::Snapshot, cx: f32, cy: f32, w: f32, ink: &gtk::gdk::RGBA) {
+            let s = w * 0.13;
+            let b = gsk::PathBuilder::new();
+            b.move_to(cx, cy - s);
+            b.line_to(cx + s * 0.72, cy);
+            b.line_to(cx, cy + s);
+            b.line_to(cx - s * 0.72, cy);
+            b.close();
+            snapshot.append_stroke(&b.to_path(), &gsk::Stroke::new(w * 0.014), ink);
         }
 
         fn draw_pip(
@@ -490,6 +556,7 @@ impl CardWidget {
         let (w, h) = Self::pixel_size(size);
         obj.set_size_request(w, h);
         obj.set_tooltip_text(Some(&label_for(card)));
+        obj.add_css_class("card");
         obj.queue_draw();
         obj
     }
@@ -501,6 +568,7 @@ impl CardWidget {
         obj.imp().tint_red.set(tint_red);
         let (w, h) = Self::pixel_size(size);
         obj.set_size_request(w, h);
+        obj.add_css_class("card");
         obj.queue_draw();
         obj
     }
