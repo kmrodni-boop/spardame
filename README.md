@@ -17,21 +17,21 @@ Fra [Releases](https://github.com/kmrodni-boop/spardame/releases/latest):
 **Anbefalt på Pop!_OS — .deb:**
 
 ```bash
-sudo dpkg -i spardame_1.1.1_amd64.deb
+sudo dpkg -i spardame_1.2.0_amd64.deb
 ```
 
 **Flatpak:**
 
 ```bash
-flatpak install --user Spardame-1.1.1.flatpak
+flatpak install --user Spardame-1.2.0.flatpak
 flatpak run no.spardame.app
 ```
 
 **AppImage:**
 
 ```bash
-chmod +x Spardame-1.1.1-x86_64.AppImage
-./Spardame-1.1.1-x86_64.AppImage
+chmod +x Spardame-1.2.0-x86_64.AppImage
+./Spardame-1.2.0-x86_64.AppImage
 ```
 
 Søk opp **Spardame** i app-menyen etter .deb eller Flatpak.

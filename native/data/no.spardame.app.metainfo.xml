@@ -38,6 +38,11 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="1.2.0" date="2026-09-21">
+      <description>
+        <p>Native GTK app only — the Electron/web build is gone. Fixed a scoring bug where the jack of diamonds bonus was lost for a non-shooter during a shot moon, and a layout bug where the smallest supported window size rendered a broken, empty table screen.</p>
+      </description>
+    </release>
     <release version="1.1.1" date="2026-09-18">
       <description>
         <p>Readable card pips, a Close button on the rules dialog, Queen of Spades as the English name for Norwegian rules, and a fixed-size trick area.</p>
