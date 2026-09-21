@@ -2,9 +2,8 @@ use crate::cards::{Card, HEARTS, DIAMONDS, SPADES, CLUBS};
 use gtk::glib;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use gtk::{gsk, graphene, Align, GestureClick, Overflow};
+use gtk::{gsk, graphene, Align, Overflow};
 use std::cell::{Cell, RefCell};
-use std::rc::Rc;
 
 const HEART_GLYPH: &str = "\u{2665}";
 const DIAMOND_GLYPH: &str = "\u{2666}";
@@ -148,7 +147,6 @@ mod imp {
         pub tint_red: Cell<bool>,
         pub face_letter: RefCell<String>,
         pub card_id: Cell<u8>,
-        pub on_click: RefCell<Option<Rc<dyn Fn()>>>,
     }
 
     impl Default for CardWidget {
@@ -162,7 +160,6 @@ mod imp {
                 tint_red: Cell::new(true),
                 face_letter: RefCell::new(String::new()),
                 card_id: Cell::new(0),
-                on_click: RefCell::new(None),
             }
         }
     }
@@ -181,14 +178,6 @@ mod imp {
             obj.set_overflow(Overflow::Hidden);
             obj.set_halign(Align::Center);
             obj.set_valign(Align::Center);
-            let gesture = GestureClick::new();
-            let imp_clone = self.to_owned();
-            gesture.connect_released(move |_, _, _, _| {
-                if let Some(cb) = imp_clone.on_click.borrow().as_ref() {
-                    cb();
-                }
-            });
-            obj.add_controller(gesture);
         }
     }
 
@@ -527,9 +516,6 @@ impl CardWidget {
     pub fn set_highlight(&self, v: bool) {
         self.imp().highlight.set(v);
         self.queue_draw();
-    }
-    pub fn set_on_click(&self, cb: impl Fn() + 'static) {
-        self.imp().on_click.replace(Some(Rc::new(cb)));
     }
     pub fn card_id(&self) -> u8 {
         self.imp().card_id.get()

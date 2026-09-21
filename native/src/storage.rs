@@ -5,26 +5,39 @@ const SAVE_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
+    #[serde(default)]
     pub variant: VariantId,
+    #[serde(default)]
     pub difficulty: Difficulty,
+    #[serde(default)]
     pub player_name: String,
+    #[serde(default)]
     pub ai_names: [String; 3],
+    #[serde(default)]
     pub muted: bool,
+    #[serde(default)]
     pub locale: Locale,
+    #[serde(default)]
     pub card_back: CardBackTint,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Stats {
+    #[serde(default)]
     pub games_played: u32,
+    #[serde(default)]
     pub games_won: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct SaveBlob {
+    #[serde(default)]
     version: u32,
+    #[serde(default = "default_settings")]
     settings: Settings,
+    #[serde(default)]
     stats: Stats,
+    #[serde(default)]
     game: Option<SerializedState>,
 }
 
@@ -47,30 +60,51 @@ pub fn default_stats() -> Stats {
 // Serialization-friendly mirror of GameState.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerializedState {
+    #[serde(default)]
     pub variant: VariantId,
+    #[serde(default)]
     pub phase: Phase,
+    #[serde(default)]
     pub hands: Vec<Vec<u8>>,
+    #[serde(default)]
     pub taken: Vec<Vec<u8>>,
+    #[serde(default)]
     pub trick: Vec<(usize, u8)>,
+    #[serde(default)]
     pub turn: usize,
+    #[serde(default)]
     pub hearts_broken: bool,
+    #[serde(default)]
     pub trick_number: usize,
+    #[serde(default)]
     pub hand_number: usize,
+    #[serde(default)]
     pub scores: [i32; 4],
+    #[serde(default)]
     pub hand_score: Option<SerializedHandScore>,
+    #[serde(default)]
     pub pass_dir: PassDir,
+    #[serde(default)]
     pub pass_selections: Vec<Option<Vec<u8>>>,
+    #[serde(default)]
     pub received_pass: Vec<u8>,
+    #[serde(default)]
     pub history: Vec<(Vec<(usize, u8)>, usize)>,
+    #[serde(default)]
     pub winner: Option<usize>,
+    #[serde(default)]
     pub tied: Vec<usize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerializedHandScore {
+    #[serde(default)]
     pub raw: [i32; 4],
+    #[serde(default)]
     pub applied: [i32; 4],
+    #[serde(default)]
     pub moon: Option<usize>,
+    #[serde(default)]
     pub jack_holder: Option<usize>,
 }
 
@@ -215,5 +249,54 @@ pub fn write_save(settings: &Settings, stats: &Stats, game: Option<&GameState>) 
     };
     if let Ok(json) = serde_json::to_string_pretty(&blob) {
         let _ = std::fs::write(save_path(), json);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cards::Rng;
+
+    // File-path resolution reads process-wide env vars (XDG_DATA_HOME), which
+    // races under cargo's parallel test threads, so these tests exercise
+    // (de)serialization directly instead of going through load_save/write_save.
+
+    #[test]
+    fn state_round_trips_through_serialization() {
+        let mut rng = Rng::from_seed(7);
+        let state = start_hand(VariantId::Spardame, 3, &[10, 20, 30, 40], &mut rng);
+        let serialized = serialize_state(&state);
+        let json = serde_json::to_string(&serialized).unwrap();
+        let parsed: SerializedState = serde_json::from_str(&json).unwrap();
+        let restored = deserialize_state(&parsed);
+        assert_eq!(restored.variant, state.variant);
+        assert_eq!(restored.phase, state.phase);
+        assert_eq!(restored.hands, state.hands);
+        assert_eq!(restored.turn, state.turn);
+        assert_eq!(restored.scores, state.scores);
+    }
+
+    #[test]
+    fn old_style_save_missing_new_fields_still_loads() {
+        // Simulates a save written before some field existed: #[serde(default)]
+        // must keep a future addition from wiping out the whole save.
+        let minimal = r#"{
+            "version": 1,
+            "settings": { "player_name": "Kari" },
+            "stats": {}
+        }"#;
+        let parsed: SaveBlob =
+            serde_json::from_str(minimal).expect("must tolerate a save missing newer fields");
+        assert_eq!(parsed.settings.player_name, "Kari");
+        assert_eq!(parsed.settings.variant, VariantId::Spardame);
+        assert_eq!(parsed.stats.games_played, 0);
+        assert!(parsed.game.is_none());
+    }
+
+    #[test]
+    fn corrupt_json_fails_to_parse_without_panicking() {
+        let bad = "{not valid json";
+        let result: Result<SaveBlob, _> = serde_json::from_str(bad);
+        assert!(result.is_err());
     }
 }

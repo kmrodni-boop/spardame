@@ -1,21 +1,18 @@
 # Spardame
 
-Kortspill som **vanlig Linux-program** — eget vindu, ikon i app-menyen.
+Kortspill som **vanlig Linux-program** — eget vindu, ikon i app-menyen. Native GTK 4 (Rust), ingen Electron/Chromium.
 
 To varianter: **Spardame** (norske regler, til 500) og **Hearts** (Windows, til 100). Fire spillere, tre motstandere. Engelsk er standard; bytt til norsk i menyen.
 
-Native GTK 4 (Rust) er den vanlige utgaven. Electron-bygget med Chromium ligger igjen som reserve.
-
 | Pakke | Typisk størrelse | Når |
 |---|---|---|
-| **`.deb` (native)** | **~2–5 MB** | Pop!_OS / Ubuntu — bruker GTK som allerede er installert |
+| **`.deb`** | **~0,3 MB** (708 KB installert) | Pop!_OS / Ubuntu — bruker GTK som allerede er installert |
 | **Flatpak** | app ~5–15 MB + GNOME-runtime | Portable, sandkasse, «installer som et program» |
-| **AppImage (native)** | ~20–50 MB | Én fil; GTK 4-AppImages kan være lunefulle |
-| Electron AppImage/.deb | ~126–168 MB | Bare om native GTK ikke går |
+| **AppImage** | ~36 MB | Én fil; bundler GTK 4 selv, derfor størst |
 
 ## Last ned
 
-Fra [Releases](https://github.com/kmrodni-boop/spardame/releases/latest) (native 1.1):
+Fra [Releases](https://github.com/kmrodni-boop/spardame/releases/latest):
 
 **Anbefalt på Pop!_OS — .deb:**
 
@@ -56,14 +53,6 @@ Utvikling: `cargo run` · tester: `cargo test --no-default-features`
 
 Lagret parti: `~/.local/share/spardame/save.json` (Flatpak: `~/.var/app/no.spardame.app/data/spardame/`).
 
-## Electron (Chromium, ~168 MB)
-
-```bash
-sudo dpkg -i spardame_1.0.4_amd64.deb
-```
-
-Bygg: `npm install && npm run dist`
-
 ## Spill
 
 - **Spardame:** spar dame 100, hjerter ess 20, øvrige hjerter 10, ruter knekt −100. Til 500.
@@ -71,4 +60,4 @@ Bygg: `npm install && npm run dist`
 
 ## English
 
-Native GTK 4 Hearts. Prefer the `.deb` on Pop!_OS (~a few MB, uses system GTK) or the Flatpak. The Electron AppImage ships Chromium (~168 MB).
+Native GTK 4 Hearts for Linux. Norwegian Spardame rules (to 500) and Windows-style Hearts (to 100). Prefer the `.deb` on Pop!_OS (~a few MB, uses system GTK) or the Flatpak.

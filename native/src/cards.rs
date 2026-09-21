@@ -65,6 +65,12 @@ pub struct Rng {
     state: u32,
 }
 
+impl Default for Rng {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Rng {
     pub fn new() -> Self {
         let seed = std::time::SystemTime::now()

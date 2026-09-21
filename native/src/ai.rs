@@ -14,7 +14,7 @@ pub fn think_delay_ms(difficulty: Difficulty, legal_count: usize) -> u32 {
 fn rand_f64() -> f64 {
     use std::cell::Cell;
     thread_local! {
-        static SEED: Cell<u32> = Cell::new(0x1234_5678);
+        static SEED: Cell<u32> = const { Cell::new(0x1234_5678) };
     }
     SEED.with(|s| {
         let mut v = s.get().wrapping_mul(1664525).wrapping_add(1013904223);
@@ -38,26 +38,6 @@ fn noise(difficulty: Difficulty) -> f64 {
 
 fn suit_count(hand: &[Card], suit: Suit) -> usize {
     hand.iter().filter(|c| c.suit() == suit).count()
-}
-
-fn highest(cards: &[Card]) -> Option<Card> {
-    cards.iter().copied().max_by_key(|c| c.rank())
-}
-
-fn lowest(cards: &[Card]) -> Option<Card> {
-    cards.iter().copied().min_by_key(|c| c.rank())
-}
-
-fn by_rank_asc(cards: &[Card]) -> Vec<Card> {
-    let mut v = cards.to_vec();
-    v.sort_by_key(|c| c.rank());
-    v
-}
-
-fn by_rank_desc(cards: &[Card]) -> Vec<Card> {
-    let mut v = cards.to_vec();
-    v.sort_by_key(|c| std::cmp::Reverse(c.rank()));
-    v
 }
 
 pub fn choose_pass_cards(state: &GameState, player: PlayerId, difficulty: Difficulty) -> Vec<Card> {
@@ -134,11 +114,10 @@ fn best_void_candidates(pool: &[Card], hand: &[Card]) -> Vec<Card> {
     for &suit in &suits {
         let cards: Vec<Card> = pool.iter().filter(|c| c.suit() == suit).copied().collect();
         let total = suit_count(hand, suit);
-        if total > 0 && total <= 3 && cards.len() == total {
-            if best.is_empty() || cards.len() < best.len() {
+        if total > 0 && total <= 3 && cards.len() == total
+            && (best.is_empty() || cards.len() < best.len()) {
                 best = cards;
             }
-        }
     }
     best
 }
@@ -217,7 +196,7 @@ fn evaluate_play(
     let would_win = would_take(trick, card, player);
     let points_on_trick: i32 = trick
         .iter()
-        .map(|p| if is_penalty_card_value(p.card, state.variant) { 1 } else { 0 })
+        .map(|p| if is_penalty_card_value(p.card) { 1 } else { 0 })
         .sum();
     let last_to_play = trick.len() == 3;
     if moon > 0 {
@@ -371,21 +350,72 @@ fn would_take(trick: &[Play], card: Card, player: PlayerId) -> bool {
     best.player == player
 }
 
-fn is_penalty_card_value(card: Card, variant_id: VariantId) -> bool {
-    if is_heart(card) || is_queen_of_spades(card) {
-        return true;
-    }
-    if matches!(variant_id, VariantId::Spardame) && is_jack_of_diamonds(card) {
-        return false;
-    }
-    false
+fn is_penalty_card_value(card: Card) -> bool {
+    is_heart(card) || is_queen_of_spades(card)
 }
 
-// silence dead_code warnings for helpers used only conditionally
-#[allow(dead_code)]
-fn _silence(_a: Option<Card>, _b: Vec<Card>, _c: Vec<Card>) {
-    let _ = highest(&[]);
-    let _ = lowest(&[]);
-    let _ = by_rank_asc(&[]);
-    let _ = by_rank_desc(&[]);
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cards::Rng;
+
+    const DIFFICULTIES: [Difficulty; 3] = [Difficulty::Easy, Difficulty::Normal, Difficulty::Hard];
+
+    #[test]
+    fn choose_pass_cards_returns_a_valid_selection() {
+        for seed in 0..20u32 {
+            let mut rng = Rng::from_seed(seed);
+            // hand_number 0 -> PassDir::Left -> Phase::Passing
+            let state = start_hand(VariantId::Spardame, 0, &[0, 0, 0, 0], &mut rng);
+            let v = get_variant(state.variant);
+            for player in 0..4 {
+                for &difficulty in &DIFFICULTIES {
+                    let chosen = choose_pass_cards(&state, player, difficulty);
+                    assert_eq!(chosen.len(), v.pass_count);
+                    let ids: std::collections::HashSet<u8> = chosen.iter().map(|c| c.id).collect();
+                    assert_eq!(ids.len(), v.pass_count, "no duplicate cards in the pass");
+                    for card in &chosen {
+                        assert!(
+                            state.hands[player].iter().any(|c| c.id == card.id),
+                            "AI tried to pass a card it doesn't hold"
+                        );
+                        assert!(
+                            v.can_pass_queen || !is_queen_of_spades(*card),
+                            "Spardame's queen of spades can't be passed"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn choose_play_always_returns_a_legal_move() {
+        for seed in 0..20u32 {
+            for variant in [VariantId::Spardame, VariantId::Hjerter] {
+                let mut rng = Rng::from_seed(seed);
+                // hand_number 3 -> PassDir::Hold -> straight to Phase::Playing
+                let mut state = start_hand(variant, 3, &[0, 0, 0, 0], &mut rng);
+                let mut guard = 0;
+                while state.phase == Phase::Playing && guard < 60 {
+                    guard += 1;
+                    let player = state.turn;
+                    let legal = legal_moves(&state, player);
+                    for &difficulty in &DIFFICULTIES {
+                        let played = choose_play(&state, player, difficulty);
+                        assert!(
+                            legal.iter().any(|c| c.id == played.id),
+                            "AI chose a card not among the legal moves"
+                        );
+                    }
+                    let card = choose_play(&state, player, Difficulty::Normal);
+                    state = play_card(&state, player, card.id).expect("AI move must be accepted");
+                    if state.phase == Phase::TrickEnd {
+                        state = resolve_trick(&state);
+                    }
+                }
+                assert_ne!(state.phase, Phase::Playing, "hand never finished within 60 plays");
+            }
+        }
+    }
 }
